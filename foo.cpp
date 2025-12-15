@@ -2,8 +2,10 @@
 #include <cuda_runtime_api.h>
 #include <stdio.h>
 #include <stddef.h>
-#include <exception>
+#include <stdexcept>
 #include <string>
+
+#include "plat.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,10 +21,10 @@ static inline void check_cu_result(CUresult err, std::string fn){
     }
     std::string err_msg = "CUDA " + fn + " failed: " + desc;
     fprintf(stderr, "%s\n", err_msg.c_str()); //Todo remove
-    throw std::exception(err_msg.c_str());
+    throw std::runtime_error(err_msg);
 }
 
-__declspec(dllexport)
+SHARED_EXPORT
 void *alloc_fn(size_t size, int device, cudaStream_t stream) {
     void *ptr = NULL;
     CUresult err;
@@ -57,7 +59,7 @@ void *alloc_fn(size_t size, int device, cudaStream_t stream) {
     return ptr;
 }
 
-__declspec(dllexport)
+SHARED_EXPORT
 void free_fn(void* ptr, size_t size, int device, cudaStream_t stream) {
     if (ptr == NULL) {
         return;
