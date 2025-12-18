@@ -84,7 +84,7 @@ void *alloc_fn(size_t size, int device, cudaStream_t stream) {
         vmm_table[h] = entry;
     }
 
-    printf("FK2 Custom Alloc: ptr=%p, size=%zu, device=%d\n", ptr, size, device);
+    printf("FK2 Custom Alloc: ptr=%p, size=%zu, device=%d phys(%llx)\n", ptr, size, device, (unsigned long long)alloc_handle);
     return ptr;
 }
 
