@@ -1,0 +1,68 @@
+name: Build Wheels
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build_wheels:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build custom build image
+        if: runner.os == 'Linux'
+        run: docker build -t custom-cuda-builder -f docker/cuda-on-manylinux.Dockerfile .
+
+      - name: Manual CUDA Extraction (Windows)
+        if: runner.os == 'Windows'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v0.0.0 -p "win-cuda-raw.tgz" -R ${{ github.repository }}
+          
+          mkdir C:\CUDA_SDK -Force
+          tar -xf win-cuda-raw.tgz -C C:\CUDA_SDK
+
+          $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          $vcvars = "$vsPath\VC\Auxiliary\Build\vcvars64.bat"
+          
+          if (Test-Path "C:\CUDA_SDK\include\crt\host_defines.h") {
+              Write-Host "✅ CUDA SDK successfully integrated."
+          } else {
+              Write-Error "❌ Extraction failed or structure incorrect."
+              exit 1
+          }
+        shell: pwsh
+
+      - name: Windows build
+        if: runner.os == 'Windows'
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set "VS_PATH=%%i"
+          call "%VS_PATH%\VC\Auxiliary\Build\vcvars64.bat"
+          cl.exe /LD /O2 src/aimdo.c -IC:/CUDA_SDK/include /Fe:aimdo/libvbar.dll /link /LIBPATH:C:/CUDA_SDK/lib/x64 cuda.lib cudart.lib
+        shell: cmd
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.21.3
+        env:
+          CIBW_MANYLINUX_X86_64_IMAGE: custom-cuda-builder 
+          CIBW_BUILD: "cp3*-manylinux_x86_64 cp3*-win_amd64"
+          CIBW_SKIP: "cp3[0-8]-*"
+          CIBW_BEFORE_BUILD_LINUX: >
+            gcc -shared -fPIC -O3 src/aimdo.c 
+            -I/usr/local/cuda-12.1/include 
+            -L/usr/local/cuda-12.1/targets/x86_64-linux/lib/stubs 
+            -lcuda -o aimdo/aimdo.so
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: "auditwheel repair --exclude libcuda.so.1 -w {dest_dir} {wheel}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: ./wheelhouse/*.whl
