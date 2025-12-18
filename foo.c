@@ -23,18 +23,18 @@ static inline unsigned int vmm_hash(void* ptr) {
     return ((uintptr_t)ptr >> MIN_ALLOC_SHIFT) % VMM_HASH_SIZE;
 }
 
-#define CHECK_CU(x)                                                             \
-    ({                                                                          \
-        CUresult __x__ = (x);                                                   \
-        if(__x__ != CUDA_SUCCESS && __x__ != CUDA_ERROR_OUT_OF_MEMORY) {        \
-            const char *desc;                                                   \
-            if (cuGetErrorString(__x__, &desc) != CUDA_SUCCESS) {               \
-                desc = "<FATAL - CANNOT PARSE CUDA ERROR CODE>";                \
-            }                                                                   \
-            fprintf(stderr, "CUDA API FAILED : " #x " : %s\n", desc);           \
-        }                                                                       \
-        __x__ == CUDA_SUCCESS;                                                  \
-    })
+static int check_cu_impl(CUresult res, const char *label) {
+    if (res != CUDA_SUCCESS && res != CUDA_ERROR_OUT_OF_MEMORY) {
+        const char* desc;
+        if (cuGetErrorString(res, &desc) != CUDA_SUCCESS) {
+            desc = "<FATAL - CANNOT PARSE CUDA ERROR CODE>";
+
+        }
+        fprintf(stderr, "CUDA API FAILED : %s : %s\n", label, desc);
+    }
+    return (res == CUDA_SUCCESS);
+}
+#define CHECK_CU(x) check_cu_impl((x), #x)
 
 SHARED_EXPORT
 void *alloc_fn(size_t size, int device, cudaStream_t stream) {
