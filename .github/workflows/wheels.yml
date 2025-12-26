@@ -21,14 +21,20 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.3
         env:
-          # Linux: Compile aimdo.c -> libvbar.so
+          # Use a newer manylinux image for better compatibility
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          
+          # Linux build
           CIBW_BEFORE_BUILD_LINUX: "gcc -shared -o {package}/aimdo/libvbar.so -fPIC src/aimdo.c"
           
-          # Windows: Compile aimdo.c -> libvbar.dll
+          # Windows build
           CIBW_BEFORE_BUILD_WINDOWS: "cl.exe /LD src/aimdo.c /Fe:{package}/aimdo/libvbar.dll"
           
-          # We only want 64-bit modern Python
+          # CRITICAL: Skip the versions that usually cause the 'pip' hang in CI
           CIBW_SKIP: "*-win32 *_i686 *-musllinux_* cp36-* cp37-* cp38-*"
+          
+          # Increase verbosity so we can see exactly where it hangs if it happens again
+          CIBW_BUILD_VERBOSITY: 1
 
       - uses: actions/upload-artifact@v4
         with:
