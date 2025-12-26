@@ -30,7 +30,8 @@ jobs:
         uses: pypa/cibuildwheel@v2.21.3
         env:
           CIBW_MANYLINUX_X86_64_IMAGE: custom-cuda-builder 
-          CIBW_BUILD: cp39-manylinux_x86_64
+          CIBW_BUILD: cp3*-manylinux_x86_64
+          CIBW_SKIP: cp3[0-8]-manylinux_x86_64
           CIBW_REPAIR_WHEEL_COMMAND_LINUX: "auditwheel repair --exclude libcuda.so.1 -w {dest_dir} {wheel}"
 
       - uses: actions/upload-artifact@v4
