@@ -1,0 +1,36 @@
+name: Build Wheels
+
+on:
+  push:
+    branches: [ master ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.21.3
+        env:
+          # Linux: Compile aimdo.c -> libvbar.so
+          CIBW_BEFORE_BUILD_LINUX: "gcc -shared -o {package}/aimdo/libvbar.so -fPIC src/aimdo.c"
+          
+          # Windows: Compile aimdo.c -> libvbar.dll
+          CIBW_BEFORE_BUILD_WINDOWS: "cl.exe /LD src/aimdo.c /Fe:{package}/aimdo/libvbar.dll"
+          
+          # We only want 64-bit modern Python
+          CIBW_SKIP: "*-win32 *_i686 *-musllinux_* cp36-* cp37-* cp38-*"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: ./wheelhouse/*.whl
