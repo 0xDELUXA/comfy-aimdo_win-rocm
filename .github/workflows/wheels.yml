@@ -11,10 +11,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest] #add windows-latest
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Build custom build image
+        if: runner.os == 'Linux'
+        run: docker build -t custom-cuda-builder -f docker/cuda-on-manylinux.Dockerfile .
 
       - name: Install CUDA (Windows)
         if: runner.os == 'Windows'
@@ -25,31 +29,16 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.3
         env:
-          # Use the official manylinux image (CentOS 7 based)
-          CIBW_MANYLINUX_X86_64_IMAGE: quay.io/pypa/manylinux2014_x86_64
-          
-          CIBW_BEFORE_ALL_LINUX: |
-            # 1. Fix EOL CentOS 7 repos so yum works
-            sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
-            sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
-            
-            # 2. Add NVIDIA CUDA Repository
-            yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo
-            
-            # 3. Install CUDA (Toolkit only, no drivers needed for building)
-            # Use 'cuda-minimal-build-12-1' to save time/space if you only need nvcc and headers
-            yum install -y cuda-nvcc-12-1 cuda-cudart-devel-12-1
-            
-            # 4. (Optional) Set paths if your build script doesn't find them automatically
-            ln -s /usr/local/cuda-12.1 /usr/local/cuda
+          CIBW_MANYLINUX_X86_64_IMAGE: custom-cuda-builder 
 
           CIBW_BEFORE_BUILD_LINUX: |
-            gcc -shared -o {package}/aimdo/libvbar.so -fPIC \
-            -I/usr/local/cuda/include \
-            -Isrc \
-            -L/usr/local/cuda/lib64/stubs \
-            -L/usr/local/cuda/lib64 \
-            -lcuda src/aimdo.c
+            gcc -shared \
+            -o {package}/aimdo/libvbar.so \
+            -fPIC \
+            -I/usr/local/cuda-12.1/include \
+            -L/usr/local/cuda-12.1/targets/x86_64-linux/lib/stubs \
+            src/aimdo.c \
+            -lcuda
           CIBW_REPAIR_WHEEL_COMMAND_LINUX: "auditwheel repair --exclude libcuda.so.1 -w {dest_dir} {wheel}"
           CIBW_BUILD: cp39-manylinux_x86_64
 
