@@ -28,6 +28,18 @@ jobs:
           # Use CUDA-ready image for Linux
           CIBW_MANYLINUX_X86_64_IMAGE: nvidia/cuda:12.1.1-devel-centos7
 
+          # Prepare EOL CentOS 7 and Python 3.9 toolchain
+          CIBW_BEFORE_ALL_LINUX: |
+            sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+            sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+            yum install -y centos-release-scl
+            sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-SCLo-*
+            sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-SCLo-*
+            yum install -y rh-python39-python-devel rh-python39-python-pip
+            mkdir -p /opt/python/cp39-cp39/bin/
+            ln -sf /opt/rh/rh-python39/root/usr/bin/python3 /opt/python/cp39-cp39/bin/python
+            ln -sf /opt/rh/rh-python39/root/usr/bin/pip3 /opt/python/cp39-cp39/bin/pip
+
           # LINUX: Link against stubs, exclude from auditwheel
           CIBW_BEFORE_BUILD_LINUX: "gcc -shared -o {package}/aimdo/libvbar.so -fPIC -I/usr/local/cuda/include -Isrc -L/usr/local/cuda/lib64/stubs -lcuda src/aimdo.c"
           CIBW_REPAIR_WHEEL_COMMAND_LINUX: "auditwheel repair --exclude libcuda.so.1 -w {dest_dir} {wheel}"
