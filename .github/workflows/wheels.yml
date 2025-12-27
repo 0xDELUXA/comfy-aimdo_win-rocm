@@ -20,7 +20,7 @@ jobs:
         if: runner.os == 'Linux'
         run: docker build -t custom-cuda-builder -f docker/cuda-on-manylinux.Dockerfile .
 
-      - name: Install Minimal CUDA (No Hangs)
+      - name: Install Minimal CUDA (Windows)
         if: runner.os == 'Windows'
         run: |
           curl.exe -Lo cuda_installer.exe https://developer.download.nvidia.com/compute/cuda/12.1.1/network_installers/cuda_12.1.1_windows_network.exe
@@ -31,7 +31,7 @@ jobs:
         shell: pwsh
 
       - name: Show CUDA Install Log
-        if: always() # Runs even if the previous step failed
+        if: always() && runner.os == 'Windows' # Runs even if the previous step failed
         run: Get-Content cuda_install.log
         shell: pwsh
 
