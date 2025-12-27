@@ -25,6 +25,8 @@ jobs:
         uses: Jimver/cuda-toolkit@v0.2.15
         with:
           cuda: '12.1.1' # Just for headers/libs; binary remains compatible back to 11.x
+          use-github-cache: false
+          use-local-cache: false
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.3
