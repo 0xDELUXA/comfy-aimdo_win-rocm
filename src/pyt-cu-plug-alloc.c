@@ -23,6 +23,8 @@ void *alloc_fn(size_t size, int device, cudaStream_t stream) {
     CUresult err;
     VMMEntry* entry = calloc(1, sizeof(*entry));
 
+    fprintf(stderr, "FK1 Custom Alloc: size=%zu, device=%d\n", size, device);
+
     if (!entry) {
         fprintf(stderr, "FATAL: Host OOM\n");
         return NULL;
@@ -54,7 +56,7 @@ void *alloc_fn(size_t size, int device, cudaStream_t stream) {
         vmm_table[h] = entry;
     }
 
-    printf("FK2 Custom Alloc: ptr=%p, size=%zu, device=%d phys(%llx)\n", entry->ptr, size, device, (unsigned long long)entry->handle);
+    fprintf(stderr, "FK2 Custom Alloc: ptr=%p, size=%zu, device=%d phys(%llx)\n", entry->ptr, size, device, (unsigned long long)entry->handle);
     return (void *)entry->ptr;
 
 fail1:
