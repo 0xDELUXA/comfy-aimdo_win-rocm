@@ -70,9 +70,9 @@ class ModelVBAR:
         t = t.view(dtype).reshape(shape)
 
         # Attach metadata for fault/unpin
-        t.vbar_ptr = self._ptr
-        t.vbar_offset = self.offset
-        t.vbar_size = num_bytes
+        t.model_vbar = self
+        t.model_vbar_offset = self.offset
+        t.model_vbar_size = num_bytes
         
         self.offset += num_bytes
         return t
@@ -81,8 +81,8 @@ class ModelVBAR:
     #define VBAR_FAULT_OOM      1
     #define VBAR_FAULT_ERROR    2
 
-    def fault(self, tensor):
-        res = lib.vbar_fault(tensor.vbar_ptr, tensor.vbar_offset, tensor.vbar_size)
+    def fault(self, offset, size):
+        res = lib.vbar_fault(self._ptr, offset, size)
         if res == 0:
             return True
         elif res == 1:
@@ -90,10 +90,16 @@ class ModelVBAR:
         else:
             raise RuntimeError(f"Fault failed: {res}")
 
-    def unpin(self, tensor):
-        lib.vbar_unpin(tensor.vbar_ptr, tensor.vbar_offset, tensor.vbar_size)
+    def unpin(self, offset, size):
+        lib.vbar_unpin(self._ptr, offset, size)
 
     def __del__(self):
         if hasattr(self, '_ptr') and self._ptr:
             lib.vbar_free(self._ptr)
             self._ptr = None
+
+def vbar_fault(tensor):
+    return tensor.model_vbar.fault(tensor.model_vbar_offset, tensor.model_vbar_size)
+
+def vbar_unpin(tensor):
+    tensor.model_vbar.unpin(tensor.model_vbar_offset, tensor.model_vbar_size)
