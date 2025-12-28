@@ -4,6 +4,26 @@ import platform
 import ctypes
 from pathlib import Path
 
+#1d int8 tensor that the user can then view(dtype=).view(shape=) as whatever they want
+
+def get_tensor_from_raw_ptr(ptr, device, size):
+
+    container = {
+        "shape": (size,),
+        "typestr": "|u1",
+        "data": (ptr, False), #writable
+        "version": 3,
+    }
+    
+    class Holder:
+        pass
+ 
+    holder = Holder()
+    holder.__cuda_array_interface__ = container
+    
+    return torch.as_tensor(holder, device=device)
+
+
 def get_lib_path():
     # Get the directory where this script/package is located
     base_path = Path(__file__).parent.resolve()
