@@ -1,23 +1,29 @@
+import gc
 import torch
 import torch.nn.functional as F
-from aimdo.model_vbar import ModelVBAR, vbar_fault, vbar_unpin, get_lib_path
 
-def run_layer(input_tensor, weight_tensor, cpu_source):
-    o = weight_tensor.model_vbar_offset
-    if vbar_fault(weight_tensor):
-        # SUCCESS: VBAR Weight is in VRAM        
-        if not getattr(weight_tensor, 'is_populated', False):
-            weight_tensor.copy_(cpu_source) 
-            weight_tensor.is_populated = True
-            print(f"[First Load] Populated 40MB weight at offset: {o}")
-        else:
-            print(f"[Secondary Fault] Reusing 40MB weight at offset: {o}")
+import aimdo.control
+from aimdo.control import allocator
+from aimdo.model_vbar import ModelVBAR, vbar_fault, vbar_unpin
+
+aimdo.control.set_log_info()
+
+def run_layer(input_tensor, weight_tensor, cpu_source, quiet=False):
+    o = weight_tensor.model_vbar_offset // (1024 ** 2)
+    faulted, resident = vbar_fault(weight_tensor)
+    if (faulted):
+        if not resident:
+            weight_tensor.copy_(cpu_source)
+            if not quiet:
+                print(f"[First Load] Populated weight at offset: {o}M")
+        elif not quiet:
+            print(f"[No Load Needed] Reusing weight at offset: {o}M")
         w = weight_tensor
     else:
-        # FAIL: VBAR is under pressure (offloaded)
-        print(f"[Offloaded] offset: {o}")
+        if not quiet:
+            print(f"[Offloaded] offset: {o}M")
         w = cpu_source.to("cuda:0", non_blocking=True)
-
+        
     #Layer math here
     output = input_tensor + w
 
@@ -26,65 +32,63 @@ def run_layer(input_tensor, weight_tensor, cpu_source):
 
     return output
 
-#python does some wild stuff with weakrefs and garbage collection here, so
-#whatever you do, do not wrap these in a function.
-allocator = torch.cuda.memory.CUDAPluggableAllocator(get_lib_path(), "alloc_fn", "free_fn")
-pool = torch.cuda.MemPool(allocator.allocator())
-
 def run_model(weights, cpu_weight):
+    with torch.cuda.use_mem_pool(torch.cuda.MemPool(allocator.allocator())):
+        x = torch.zeros(cpu_weight.shape, device="cuda:0", dtype=torch.float16)
+        for i in range(10): # Iteration loop
+            print(f"\nIteration {i}")            
+            if (i > 2):
+                print("...")
+
+            for layer_weight in weights:
+                x = run_layer(x, layer_weight, cpu_weight, quiet=(i > 2))
+        #sometimes torch can free mempools while the GPU is still working. Must sync
+        #before we gc this mempool
+        torch.cuda.synchronize()
+    # Torch code comments says some stuff about not actually freeing tensors on mempool
+    #context release. Explicitly garbage collect now.
+    gc.collect()
     torch.cuda.empty_cache()
-    x = torch.zeros(cpu_weight.shape, device="cuda:0", dtype=torch.float16)
-    for i in range(3): # Iteration loop
-        print(f"\nIteration {i}")
-        
-        for layer_weight in weights:
-            x = run_layer(x, layer_weight, cpu_weight)
 
-#This installs aimdo to the pytorch main allocator
-with torch.cuda.use_mem_pool(pool):
-    #FIXME: prime torch properly somewhere else
-    dummy = torch.randn(1, device=torch.device("cuda:0"))
+#FIXME: Get rid of this
+dummy = torch.randn(1, device=torch.device("cuda:0"))
 
-    dtype = torch.float16
+dtype = torch.float16
 
-    # --- Setup ---
-    vbar1 = ModelVBAR(14 * 1024**3, device=0)
+vbar1 = ModelVBAR(14 * 1024**3, device=0)
 
-    # ~400MB weights
-    shape = (10240, 20480) 
-    num_layers = 12 * 1024 **3 // (20480 * 10240 * dtype.itemsize)
+# ~200MB weights
+shape = (10240, 10240) 
+num_layers = 8 * 1024 **3 // (10240 * 10240 * dtype.itemsize)
 
-    print(f"allocating {num_layers} 400MB layers")
-    weights1 = [vbar1.alloc(shape, dtype=dtype) for _ in range(num_layers)]
-    #just share one weight in this example, as don't complicate this example
-    #with RAM usage. in the real world this will be separate weights for every layer
-    cpu_weight1 = torch.randn(shape, dtype=dtype)
+weights1 = [vbar1.alloc(shape, dtype=dtype) for _ in range(num_layers)]
+#just share one weight in this example, as don't complicate this example
+#with RAM usage. in the real world this will be separate weights for every layer
+cpu_weight1 = torch.ones(shape, dtype=dtype)
 
-    print("##################### Run the first model #######################")
-    print("Some weights will be loaded and stay there for all iterations")
-    print("Some weights will be offloaded")
+print("##################### Run the first model #######################")
+print("Some weights will be loaded and stay there for all iterations")
+print("Some weights will be offloaded\n")
 
-    # --- Start Inference ---
-    run_model(weights1, cpu_weight1)
+run_model(weights1, cpu_weight1)
 
-    #A smaller second model but with chunkier weights
-    vbar2 = ModelVBAR(3 * 1024 **3, device=0)
-    shape = (20480, 20480)
-    num_layers = 2
+#A smaller second model but with chunkier weights
+vbar2 = ModelVBAR(3 * 1024 **3, device=0)
+shape = (15443, 20480)
+num_layers = 2
 
-    print(f"allocating {num_layers} 800MB layers")
-    weights2 = [ vbar2.alloc(shape, dtype=dtype) for _ in range(num_layers)]
-    cpu_weight2 = torch.randn(shape, dtype=dtype)
+weights2 = [ vbar2.alloc(shape, dtype=dtype) for _ in range(num_layers)]
+cpu_weight2 = torch.ones(shape, dtype=dtype)
 
-    print("##################### Run the second model #######################")
-    print("Everything will be loaded and will displace weights of the first model")
+print("##################### Run the second model #######################")
+print("Everything will be loaded and will displace some weights of the first model\n")
 
-    run_model(weights2, cpu_weight2)
+run_model(weights2, cpu_weight2)
 
-    print("##################### Run the first model again #######################")
-    print("Some weights will still be loaded from before and be there first iteration")
-    print("Some weights will get re-loaded on the first interation")
-    print("The rest will be offloaded again")
+print("##################### Run the first model again #######################")
+print("Some weights will still be loaded from before and be there first iteration")
+print("Some weights will get re-loaded on the first interation")
+print("The rest will be offloaded again\n")
 
-    vbar1.prioritize()
-    run_model(weights1, cpu_weight1)
+vbar1.prioritize()
+run_model(weights1, cpu_weight1)
