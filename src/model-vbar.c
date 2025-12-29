@@ -140,7 +140,7 @@ void vbar_prioritize(void *vbar) {
 
 SHARED_EXPORT
 uint64_t vbar_get(void *vbar) {
-    log(DEBUG, "%s vbar=%p", __func__);
+    log(DEBUG, "%s vbar=%p", __func__, vbar);
     return (uint64_t)((ModelVBAR *)vbar)->vbar;
 }
 
@@ -153,6 +153,9 @@ int vbar_fault(void *vbar, uint64_t offset, uint64_t size) {
     ModelVBAR *mv = (ModelVBAR *)vbar;
 
     size_t page_end = VBAR_GET_PAGE_NR_UP(offset + size);
+
+    log(DEBUG, "%s (start): offset=%lld, size=%llx\n", __func__, (ull)offset, (ull)size);
+
     if (page_end > mv->watermark) {
         return VBAR_FAULT_OOM;
     }
@@ -168,15 +171,17 @@ int vbar_fault(void *vbar, uint64_t offset, uint64_t size) {
 
         if ((err = three_stooges(vaddr, VBAR_PAGE_SIZE, mv->device, &rp->handle)) != CUDA_SUCCESS) {
             if (err != CUDA_ERROR_OUT_OF_MEMORY) {
+                log(ERROR, "VRAM Allocation failed (non OOM)");
                 return VBAR_FAULT_ERROR;
             }
-            fprintf(stderr, "DEBUG: OOMED\n");
+            log(DEBUG, "VBAR allocator attempt exceeds available VRAM ...");
             vbars_free_for_vbar(mv);
-            /* vbars free is allowed to come after us too */
             if (page_nr >= mv->watermark) {
+                log(DEBUG, "VBAR allocation cancelled due to watermark reduction");
                 return VBAR_FAULT_OOM;
             }
-            if (three_stooges(vaddr, VBAR_PAGE_SIZE, mv->device, &rp->handle) != CUDA_SUCCESS) {
+            if ((err = three_stooges(vaddr, VBAR_PAGE_SIZE, mv->device, &rp->handle)) != CUDA_SUCCESS) {
+                log(ERROR, "VRAM Allocation failed");
                 return VBAR_FAULT_ERROR;
             }
         }
@@ -189,6 +194,7 @@ int vbar_fault(void *vbar, uint64_t offset, uint64_t size) {
         rp->pinned = true;
     }
 
+    log(DEBUG, "%s (return)\n");
     return VBAR_FAULT_SUCCESS;
 }
 
