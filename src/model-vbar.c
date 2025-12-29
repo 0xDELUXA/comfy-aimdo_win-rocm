@@ -104,7 +104,7 @@ void *vbar_allocate(uint64_t size, int device) {
     ModelVBAR *mv;
 
     one_time_setup();
-    log(DEBUG, "%s (start): size=%zu, device=%d\n", __func__, size, device);
+    log(DEBUG, "%s (start): size=%zuM, device=%d\n", __func__, size / M, device);
 
     size_t nr_pages = VBAR_GET_PAGE_NR_UP(size);
     size = (uint64_t)nr_pages * VBAR_PAGE_SIZE;
@@ -160,7 +160,7 @@ int vbar_fault(void *vbar, uint64_t offset, uint64_t size) {
 
     size_t page_end = VBAR_GET_PAGE_NR_UP(offset + size);
 
-    log(DEBUG, "%s (start): offset=%lld, size=%llx\n", __func__, (ull)offset, (ull)size);
+    log(DEBUG, "%s (start): offset=%lldk, size=%lldk\n", __func__, (ull)(offset / K), (ull)(size / K));
 
     if (page_end > mv->watermark) {
         return VBAR_FAULT_OOM;

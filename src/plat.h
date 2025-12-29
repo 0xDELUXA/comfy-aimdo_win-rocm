@@ -17,15 +17,18 @@
 #endif
 
 typedef unsigned long long ull;
+#define K 1024
+#define M (K * K)
 
 enum DebugLevels {
     __NONE__ = -1,
+    /* Default to everything so if python itegration is hosed, we see prints. */
     ALL = 0,
     CRITICAL,
     ERROR,
     WARNING,
     INFO,
-    DEBUG
+    DEBUG,
 };
 
 /* debug.c */
