@@ -45,6 +45,8 @@ static inline bool mod1(ModelVBAR *mv, size_t page_nr, bool do_free, bool do_unp
 void vbars_free(size_t size) {
     size_t pages_needed = VBAR_GET_PAGE_NR_UP(size);
 
+    CHECK_CU(cuCtxSynchronize());
+
     for (ModelVBAR *i = lowest_priority.higher; pages_needed && i != &highest_priority;
          i = i->higher) {
         for (;pages_needed && i->watermark; i->watermark--) {
@@ -64,6 +66,8 @@ static inline size_t move_cursor_to_absent(ModelVBAR *mv, size_t cursor) {
 
 static void vbars_free_for_vbar(ModelVBAR *mv) {
     size_t cursor = move_cursor_to_absent(mv, 0);
+
+    CHECK_CU(cuCtxSynchronize());
 
     for (ModelVBAR *i = lowest_priority.higher; cursor < mv->watermark && i != &highest_priority;
          i = i->higher) {
@@ -211,6 +215,8 @@ void vbar_unpin(void *vbar, uint64_t offset, uint64_t size) {
 SHARED_EXPORT
 void vbar_free(void *vbar) {
     ModelVBAR *mv = (ModelVBAR *)vbar;
+
+    CHECK_CU(cuCtxSynchronize());
 
     for (uint64_t page_nr = 0; page_nr < mv->nr_pages; page_nr++) {
         mod1(mv, page_nr, true, true);
