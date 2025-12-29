@@ -29,6 +29,8 @@ This project is a pytorch VRAM allocator that implements on-demand offloading of
 3.  The layer uses the temporary as the weight.
 4.  Pytorch garbage collects the temp when the layer is finished.
 
+see examples/example.py
+
 ---
 
 ## Priorities:
@@ -46,3 +48,7 @@ This project is a pytorch VRAM allocator that implements on-demand offloading of
 * VBAR allocation is done with `cuMemAddressReserve()`, faulting with `cuMemCreate()` and `cuMemMap()` and all frees done with appropriate converse APIs.
 * For consistency with VBAR memory management, main pytorch allocator plugin is also implemented with `cuMemAddressReserve` -> `cuMemCreate` -> `cuMemMap`. This also behaves a lot better on Windows system with System Memory fallback.
 * This allocator is incompatible with the pytorch `cudaMallocAsync` backend or expandable segments backends (as the plugin interface does not exist on these backends as of this writing).
+
+## Caveats
+
+* There is no real way for this allocator to tell the difference between high usage and bad fragmentation in the pytorch caching allocator. As we always return success to the pytorch caching allocator it experiences no pressure while weights are being offloaded which means it can run in an extremely fragmented mode. The assumption is model weight access patterns are reasonably regular over blocks or iterations and it finds a good set of sizes to cache. What you should generally do though, is completely flush the pytorch caching allocator before each new model run, which avoids completely un-used reservations from taking priority over the next models weights.
