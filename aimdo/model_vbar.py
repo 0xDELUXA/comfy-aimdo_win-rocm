@@ -1,8 +1,13 @@
 import torch
-import os
-import platform
 import ctypes
-from pathlib import Path
+
+from . import control
+
+# Ensure the library is loaded before accessing control.lib
+if control.lib is None:
+    control.init()
+
+lib = control.lib
 
 #1d int8 tensor that the user can then view(dtype=).view(shape=) as whatever they want
 
@@ -22,30 +27,6 @@ def get_tensor_from_raw_ptr(ptr, device, size):
     holder.__cuda_array_interface__ = container
     
     return torch.as_tensor(holder, device=device)
-
-
-def get_lib_path():
-    # Get the directory where this script/package is located
-    base_path = Path(__file__).parent.resolve()
-    
-    # Determine extension based on OS
-    system = platform.system()
-    if system == "Windows":
-        lib_name = "aimdo.dll"
-    elif system == "Linux":
-        lib_name = "aimdo.so"
-    else:
-        # MacOS usually uses .dylib, though often .so works
-        lib_name = "aimdo.so" 
-        
-    return str(base_path / lib_name)
-
-# Load the library
-lib_path = get_lib_path()
-if not os.path.exists(lib_path):
-    raise ImportError(f"Cannot find native library at {lib_path}")
-
-lib = ctypes.CDLL(lib_path)
 
 # Bindings
 
