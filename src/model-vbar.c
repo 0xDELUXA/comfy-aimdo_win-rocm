@@ -64,14 +64,14 @@ static inline size_t move_cursor_to_absent(ModelVBAR *mv, size_t cursor) {
     return cursor;
 }
 
-static void vbars_free_for_vbar(ModelVBAR *mv) {
+static void vbars_free_for_vbar(ModelVBAR *mv, size_t target) {
     size_t cursor = move_cursor_to_absent(mv, 0);
 
     CHECK_CU(cuCtxSynchronize());
 
-    for (ModelVBAR *i = lowest_priority.higher; cursor < mv->watermark && i != &highest_priority;
+    for (ModelVBAR *i = lowest_priority.higher; cursor < target && i != &highest_priority;
          i = i->higher) {
-        for (; cursor < mv->watermark && i->watermark; i->watermark--) {
+        for (; cursor < target && target < mv->watermark && i->watermark; i->watermark--) {
             if (mod1(i, i->watermark - 1, true, false)) {
                 cursor = move_cursor_to_absent(mv, cursor + 1);
             }
@@ -182,7 +182,7 @@ int vbar_fault(void *vbar, uint64_t offset, uint64_t size) {
                 return VBAR_FAULT_ERROR;
             }
             log(DEBUG, "VBAR allocator attempt exceeds available VRAM ...\n");
-            vbars_free_for_vbar(mv);
+            vbars_free_for_vbar(mv, page_end);
             if (page_nr >= mv->watermark) {
                 log(DEBUG, "VBAR allocation cancelled due to watermark reduction\n");
                 return VBAR_FAULT_OOM;
