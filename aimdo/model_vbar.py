@@ -43,6 +43,12 @@ lib.vbar_fault.restype = ctypes.c_int
 
 lib.vbar_unpin.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64]
 
+lib.get_loaded_size.argtypes = [ctypes.c_void_p]
+lib.get_loaded_size.restype = ctypes.c_size_t
+
+lib.vbar_free_memory.argtypes = [ctypes.c_void_p, ctypes.c_uint64]
+lib.vbar_free_memory.restype = ctypes.c_uint64
+
 class ModelVBAR:
     def __init__(self, size, device=0):
         self._ptr = lib.vbar_allocate(size, device)
@@ -97,6 +103,12 @@ class ModelVBAR:
 
     def unpin(self, offset, size):
         lib.vbar_unpin(self._ptr, offset, size)
+
+    def loaded_size(self):
+        return lib.vbar_loaded_size(self._ptr)
+
+    def free_memory(self, size_bytes):
+        return lib.vbar_free_memory(self._ptr, size_bytes)
 
     def __del__(self):
         if hasattr(self, '_ptr') and self._ptr:

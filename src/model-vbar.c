@@ -20,6 +20,8 @@ typedef struct ModelVBAR {
     void *higher;
     void *lower;
 
+    size_t resident_count;
+
     ResidentPage residency_map[1]; /* Must be last! */
 } ModelVBAR;
 
@@ -35,6 +37,7 @@ static inline bool mod1(ModelVBAR *mv, size_t page_nr, bool do_free, bool do_unp
         CHECK_CU(cuMemUnmap(vaddr, VBAR_PAGE_SIZE));
         CHECK_CU(cuMemRelease(rp->handle));
         rp->handle = 0;
+        mv->resident_count--;
     }
     if (do_unpin) {
         rp->pinned = false;
@@ -209,6 +212,7 @@ int vbar_fault(void *vbar, uint64_t offset, uint64_t size) {
                 return VBAR_FAULT_ERROR;
             }
         }
+        mv->resident_count++;
         ret = VBAR_FAULT_NON_RESIDENT;
     }
 
@@ -243,4 +247,32 @@ void vbar_free(void *vbar) {
         mod1(mv, page_nr, true, true);
     }
     free(mv);
+}
+
+SHARED_EXPORT
+size_t vbar_loaded_size(void *vbar) {
+    ModelVBAR *mv = (ModelVBAR *)vbar;
+
+    return mv->resident_count * VBAR_PAGE_SIZE;
+}
+
+SHARED_EXPORT
+uint64_t vbar_free_memory(void *vbar, uint64_t size) {
+    ModelVBAR *mv = (ModelVBAR *)vbar;
+    size_t pages_to_free = VBAR_GET_PAGE_NR_UP(size);
+    size_t pages_freed = 0;
+
+    log(DEBUG, "%s (start): size=%lldk, size=%lldk\n", __func__, (ull)size);
+
+    for (;pages_to_free && mv->watermark; mv->watermark--) {
+        /* In theory we should never have pins here, but
+         * respect pins if it really comes up.
+         */
+        if (mod1(mv, mv->watermark - 1, true, false)) {
+            pages_to_free--;
+            pages_freed++;
+        }
+    }
+
+    return (uint64_t)pages_freed * VBAR_PAGE_SIZE;
 }
