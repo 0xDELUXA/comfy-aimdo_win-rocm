@@ -51,7 +51,9 @@ lib.vbar_free_memory.restype = ctypes.c_uint64
 
 class ModelVBAR:
     def __init__(self, size, device=0):
-        self._ptr = lib.vbar_allocate(size, device)
+        if (isinstance(device, torch.device)):
+            device = device.index if device.index is not None else 0
+        self._ptr = lib.vbar_allocate(int(size), device)
         if not self._ptr:
             raise MemoryError("VBAR allocation failed")
         self.device = device
