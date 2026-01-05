@@ -249,6 +249,7 @@ void vbar_free(void *vbar) {
     for (uint64_t page_nr = 0; page_nr < mv->nr_pages; page_nr++) {
         mod1(mv, page_nr, true, true);
     }
+    remove_vbar(mv);
     free(mv);
 }
 
