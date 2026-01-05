@@ -31,6 +31,8 @@ lib.vbar_allocate.restype = ctypes.c_void_p
 
 lib.vbar_prioritize.argtypes = [ctypes.c_void_p]
 
+lib.vbar_deprioritize.argtypes = [ctypes.c_void_p]
+
 lib.vbar_get.argtypes = [ctypes.c_void_p]
 lib.vbar_get.restype = ctypes.c_uint64
 
@@ -53,6 +55,9 @@ class ModelVBAR:
 
     def prioritize(self):
         lib.vbar_prioritize(self._ptr)
+
+    def deprioritize(self):
+        lib.vbar_deprioritize(self._ptr)
 
     def alloc(self, shape, dtype=torch.float32):
         self.offset = (self.offset + 511) & ~511

@@ -99,6 +99,13 @@ static inline void insert_vbar(ModelVBAR *mv) {
     highest_priority.lower = mv;
 }
 
+static inline void insert_vbar_last(ModelVBAR *mv) {
+    mv->higher = lowest_priority.higher;
+    ((ModelVBAR *)lowest_priority.higher)->lower = mv;
+    mv->lower = &lowest_priority;
+    lowest_priority.higher = mv;
+}
+
 SHARED_EXPORT
 void *vbar_allocate(uint64_t size, int device) {
     ModelVBAR *mv;
@@ -140,6 +147,16 @@ void vbar_prioritize(void *vbar) {
     insert_vbar(mv);
 
     mv->watermark = mv->nr_pages;
+}
+
+SHARED_EXPORT
+void vbar_deprioritize(void *vbar) {
+    ModelVBAR *mv = (ModelVBAR *)vbar;
+
+    log(DEBUG, "%s vbar=%p\n", __func__);
+
+    remove_vbar(mv);
+    insert_vbar_last(mv);
 }
 
 SHARED_EXPORT
