@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 
 import aimdo.control
-from aimdo.control import allocator
+from aimdo.allocator import allocator
 from aimdo.model_vbar import ModelVBAR, vbar_fault, vbar_unpin
 
 aimdo.control.set_log_info()
