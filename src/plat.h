@@ -60,6 +60,8 @@ void log_reset_shots();
 #define log(level, ...) do_log(false, level, __VA_ARGS__)
 #define log_shot(level, ...) do_log(true, level, __VA_ARGS__)
 
+extern uint64_t total_vram_usage; /* model_vbar.c */
+
 static inline int check_cu_impl(CUresult res, const char *label) {
     if (res != CUDA_SUCCESS && res != CUDA_ERROR_OUT_OF_MEMORY) {
         const char* desc;
@@ -99,6 +101,7 @@ static inline CUresult three_stooges(CUdeviceptr vaddr, size_t size, int device,
     if (!CHECK_CU(err = cuMemSetAccess(vaddr, size, &accessDesc, 1))) {
         goto fail_access;
     }
+    total_vram_usage += size;
 
     *handle = h;
     return CUDA_SUCCESS;

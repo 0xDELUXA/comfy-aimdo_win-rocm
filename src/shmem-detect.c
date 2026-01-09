@@ -53,7 +53,7 @@ size_t wddm_budget_deficit(size_t bytes)
         return 0;
     }
 
-    deficit = info.CurrentUsage + bytes + WDDM_BUDGET_HEADROOM - info.Budget;
+    deficit = total_vram_usage + bytes + WDDM_BUDGET_HEADROOM - info.Budget;
     if (deficit > 0) {
         log(DEBUG, "Imminent WDDM VRAM OOM detected %lld/%lld MB VRAM used (+%lldMB)\n",
                     (ull)info.CurrentUsage, (ull)info.Budget, (ull)bytes);

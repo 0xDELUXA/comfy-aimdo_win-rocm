@@ -29,6 +29,8 @@ typedef struct ModelVBAR {
 ModelVBAR highest_priority;
 ModelVBAR lowest_priority;
 
+uint64_t total_vram_usage;
+
 static inline bool mod1(ModelVBAR *mv, size_t page_nr, bool do_free, bool do_unpin) {
     ResidentPage *rp = &mv->residency_map[page_nr];
     CUdeviceptr vaddr = mv->vbar + page_nr * VBAR_PAGE_SIZE;
@@ -37,6 +39,7 @@ static inline bool mod1(ModelVBAR *mv, size_t page_nr, bool do_free, bool do_unp
     if (do_free) {
         CHECK_CU(cuMemUnmap(vaddr, VBAR_PAGE_SIZE));
         CHECK_CU(cuMemRelease(rp->handle));
+        total_vram_usage -= VBAR_PAGE_SIZE;
         rp->handle = 0;
         mv->resident_count--;
     }
