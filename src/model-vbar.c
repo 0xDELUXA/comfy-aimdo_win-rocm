@@ -164,7 +164,7 @@ void vbar_deprioritize(void *vbar) {
     ModelVBAR *mv = (ModelVBAR *)vbar;
 
     log_reset_shots();
-    log(DEBUG, "%s vbar=%p\n", __func__);
+    log(DEBUG, "%s vbar=%p\n", __func__, vbar);
 
     remove_vbar(mv);
     insert_vbar_last(mv);

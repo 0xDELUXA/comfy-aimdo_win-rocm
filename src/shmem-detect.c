@@ -1,4 +1,4 @@
-#include <plat.h>
+#include "plat.h"
 
 #include <windows.h>
 #include <dxgi1_4.h>
