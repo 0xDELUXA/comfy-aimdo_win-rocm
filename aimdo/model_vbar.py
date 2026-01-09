@@ -1,28 +1,8 @@
-import torch
 import ctypes
 
 from . import control
 
 lib = control.lib
-
-#1d int8 tensor that the user can then view(dtype=).view(shape=) as whatever they want
-
-def get_tensor_from_raw_ptr(ptr, device, size):
-
-    container = {
-        "shape": (size,),
-        "typestr": "|u1",
-        "data": (ptr, False), #writable
-        "version": 3,
-    }
-    
-    class Holder:
-        pass
- 
-    holder = Holder()
-    holder.__cuda_array_interface__ = container
-    
-    return torch.as_tensor(holder, device=device)
 
 # Bindings
 
@@ -50,9 +30,7 @@ lib.vbar_free_memory.argtypes = [ctypes.c_void_p, ctypes.c_uint64]
 lib.vbar_free_memory.restype = ctypes.c_uint64
 
 class ModelVBAR:
-    def __init__(self, size, device=0):
-        if (isinstance(device, torch.device)):
-            device = device.index if device.index is not None else 0
+    def __init__(self, size, device):
         self._ptr = lib.vbar_allocate(int(size), device)
         if not self._ptr:
             raise MemoryError("VBAR allocation failed")
@@ -67,25 +45,15 @@ class ModelVBAR:
     def deprioritize(self):
         lib.vbar_deprioritize(self._ptr)
 
-    def alloc(self, shape, dtype=torch.float32):
+    def alloc(self, num_bytes):
         self.offset = (self.offset + 511) & ~511
-        num_bytes = dtype.itemsize
-        for dim in shape:
-            num_bytes *= dim
 
         if self.offset + num_bytes > self.max_size:
             raise MemoryError("VBAR OOM")
 
-        t = get_tensor_from_raw_ptr(self.base_addr + self.offset, self.device, num_bytes)
-        t = t.view(dtype).reshape(shape)
-
-        # Attach metadata for fault/unpin
-        t.model_vbar = self
-        t.model_vbar_offset = self.offset
-        t.model_vbar_size = num_bytes
-        
+        alloc = self.base_addr + self.offset
         self.offset += num_bytes
-        return t
+        return (self, alloc, num_bytes)
 
     #define VBAR_PAGE_SIZE (32 << 20)
 
@@ -93,7 +61,8 @@ class ModelVBAR:
     #define VBAR_FAULT_OOM          1
     #define VBAR_FAULT_ERROR        2
 
-    def fault(self, offset, size):
+    def fault(self, alloc, size):
+        offset = alloc - self.base_addr
         # +2, one for misalignment and one for rounding
         signature = (ctypes.c_uint32 * (size // (32 * 1024 ** 2) + 2))()
         res = lib.vbar_fault(self._ptr, offset, size, signature)
@@ -104,7 +73,8 @@ class ModelVBAR:
         else:
             raise RuntimeError(f"Fault failed: {res}")
 
-    def unpin(self, offset, size):
+    def unpin(self, alloc, size):
+        offset = alloc - self.base_addr
         lib.vbar_unpin(self._ptr, offset, size)
 
     def loaded_size(self):
@@ -118,12 +88,14 @@ class ModelVBAR:
             lib.vbar_free(self._ptr)
             self._ptr = None
 
-def vbar_fault(tensor):
-    return tensor.model_vbar.fault(tensor.model_vbar_offset, tensor.model_vbar_size)
+def vbar_fault(alloc):
+    vbar, offset, size = alloc
+    return vbar.fault(offset, size)
 
-def vbar_unpin(tensor):
-    if tensor is not None and hasattr(tensor, 'model_vbar'):
-        tensor.model_vbar.unpin(tensor.model_vbar_offset, tensor.model_vbar_size)
+def vbar_unpin(alloc):
+    if alloc is not None:
+        vbar, offset, size = alloc
+        vbar.unpin(offset, size)
 
 def vbar_signature_compare(a, b):
     if a is None or b is None:

@@ -1,7 +1,3 @@
-#This module does not import torch by design. It can used to detect the
-#libraries existance via import before the first torch import for environment
-#logic.
-
 import os
 import ctypes
 import platform
