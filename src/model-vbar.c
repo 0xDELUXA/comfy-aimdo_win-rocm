@@ -49,6 +49,10 @@ static inline bool mod1(ModelVBAR *mv, size_t page_nr, bool do_free, bool do_unp
 void vbars_free(size_t size) {
     size_t pages_needed = VBAR_GET_PAGE_NR_UP(size);
 
+    if (!size) {
+        return;
+    }
+
     CHECK_CU(cuCtxSynchronize());
 
     for (ModelVBAR *i = lowest_priority.higher; pages_needed && i != &highest_priority;
@@ -189,7 +193,7 @@ int vbar_fault(void *vbar, uint64_t offset, uint64_t size, uint32_t *signature) 
     }
 
     for (uint64_t page_nr = VBAR_GET_PAGE_NR(offset); page_nr < page_end; page_nr++) {
-        CUresult err;
+        CUresult err = CUDA_ERROR_OUT_OF_MEMORY;
         CUdeviceptr vaddr = mv->vbar + page_nr * VBAR_PAGE_SIZE;
         ResidentPage *rp = &mv->residency_map[page_nr];
 
@@ -198,7 +202,8 @@ int vbar_fault(void *vbar, uint64_t offset, uint64_t size, uint32_t *signature) 
             continue;
         }
 
-        if ((err = three_stooges(vaddr, VBAR_PAGE_SIZE, mv->device, &rp->handle)) != CUDA_SUCCESS) {
+        if (wddm_budget_deficit(VBAR_PAGE_SIZE) ||
+            (err = three_stooges(vaddr, VBAR_PAGE_SIZE, mv->device, &rp->handle)) != CUDA_SUCCESS) {
             if (err != CUDA_ERROR_OUT_OF_MEMORY) {
                 log(ERROR, "VRAM Allocation failed (non OOM)\n");
                 return VBAR_FAULT_ERROR;

@@ -11,9 +11,19 @@
 #include <assert.h>
 
 #if defined(_WIN32) || defined(_WIN64)
+
 #define SHARED_EXPORT __declspec(dllexport)
+
+size_t wddm_budget_deficit(size_t bytes); /* shmem-detect.c */
+
 #else
+
 #define SHARED_EXPORT
+
+static inline size_t wddm_budget_deficit(size_t bytes) {
+    return 0;
+}
+
 #endif
 
 typedef unsigned long long ull;

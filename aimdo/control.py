@@ -26,6 +26,20 @@ if not os.path.exists(lib_path):
 
 lib = ctypes.CDLL(lib_path)
 
+
+lib.wddm_init.argtypes = [c_int]
+lib.wddm_init.restype = c_bool
+
+lib.wddm_cleanup.argtypes = []
+lib.wddm_cleanup.restype = None
+
+def init_vram_guard(device_id: int):
+    return lib.wddm_init(device_id):
+
+def shutdown_vram_guard():
+    lib.wddm_cleanup()
+
+
 lib.set_log_level_none.argtypes = []
 lib.set_log_level_none.restype = None
 
