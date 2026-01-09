@@ -115,5 +115,4 @@ fail:
 }
 
 /* model_vbar.c */
-void vbars_analyze();
 void vbars_free(size_t size);
