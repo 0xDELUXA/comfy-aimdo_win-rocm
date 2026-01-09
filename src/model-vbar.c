@@ -119,6 +119,7 @@ void *vbar_allocate(uint64_t size, int device) {
     ModelVBAR *mv;
 
     one_time_setup();
+    log_reset_shots();
     log(DEBUG, "%s (start): size=%zuM, device=%d\n", __func__, size / M, device);
 
     size_t nr_pages = VBAR_GET_PAGE_NR_UP(size);
@@ -149,6 +150,7 @@ SHARED_EXPORT
 void vbar_prioritize(void *vbar) {
     ModelVBAR *mv = (ModelVBAR *)vbar;
 
+    log_reset_shots();
     log(DEBUG, "%s vbar=%p\n", __func__, vbar);
 
     remove_vbar(mv);
@@ -161,6 +163,7 @@ SHARED_EXPORT
 void vbar_deprioritize(void *vbar) {
     ModelVBAR *mv = (ModelVBAR *)vbar;
 
+    log_reset_shots();
     log(DEBUG, "%s vbar=%p\n", __func__);
 
     remove_vbar(mv);

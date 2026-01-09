@@ -29,3 +29,7 @@ const char *get_level_str(int level) {
     }
     return level_strs[level];
 }
+
+void log_reset_shots() {
+    log_shot_counter++;
+}

@@ -14,6 +14,8 @@
 
 #define SHARED_EXPORT __declspec(dllexport)
 
+typedef SSIZE_T ssize_t;
+
 size_t wddm_budget_deficit(size_t bytes); /* shmem-detect.c */
 
 #else
@@ -43,12 +45,20 @@ enum DebugLevels {
 
 /* debug.c */
 extern int log_level;
+extern uint64_t log_shot_counter;
 const char *get_level_str(int level);
+void log_reset_shots();
 
-#define log(level, ...) if (!log_level || log_level >= (level)) {                           \
-    fprintf(stderr, "aimdo: %s:%d:%s:", __FILE__, __LINE__, get_level_str(level));          \
-    fprintf(stderr, __VA_ARGS__);                                                           \
-}
+#define do_log(do_shot_counter, level, ...)                                                     \
+    static uint64_t shot_counter;                                                               \
+    if ((!log_level || log_level >= (level)) && shot_counter < log_shot_counter) {              \
+        shot_counter = (do_shot_counter) ? log_shot_counter : 0;                                \
+        fprintf(stderr, "aimdo: %s:%d:%s:", __FILE__, __LINE__, get_level_str(level));          \
+        fprintf(stderr, __VA_ARGS__);                                                           \
+    }
+
+#define log(level, ...) do_log(false, level, __VA_ARGS__)
+#define log_shot(level, ...) do_log(true, level, __VA_ARGS__)
 
 static inline int check_cu_impl(CUresult res, const char *label) {
     if (res != CUDA_SUCCESS && res != CUDA_ERROR_OUT_OF_MEMORY) {
