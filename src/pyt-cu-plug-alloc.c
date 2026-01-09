@@ -24,7 +24,7 @@ void *alloc_fn(size_t size, int device, cudaStream_t stream) {
     CUresult err;
     VMMEntry* entry = calloc(1, sizeof(*entry));
 
-    log(DEBUG, "%s (start): size=%zuk, device=%d\n", __func__, size / K, device);
+    log(VERBOSE, "%s (start): size=%zuk, device=%d\n", __func__, size / K, device);
 
     if (!entry) {
         log(CRITICAL, "Host OOM\n");
@@ -63,7 +63,7 @@ void *alloc_fn(size_t size, int device, cudaStream_t stream) {
         vmm_table[h] = entry;
     }
 
-    log(DEBUG, "%s (return): ptr=%p\n", __func__, (void *)entry->ptr);
+    log(VERBOSE, "%s (return): ptr=%p\n", __func__, (void *)entry->ptr);
     return (void *)entry->ptr;
 
 fail1:
@@ -76,7 +76,7 @@ fail:
 
 SHARED_EXPORT
 void free_fn(void* ptr, size_t size, int device, cudaStream_t stream) {
-    log(DEBUG, "%s (start) ptr=%p size=%zuk, device=%d\n", __func__, ptr, size / K, device);
+    log(VERBOSE, "%s (start) ptr=%p size=%zuk, device=%d\n", __func__, ptr, size / K, device);
     if (ptr == NULL) {
         return;
     }

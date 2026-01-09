@@ -66,9 +66,13 @@ lib.set_log_level_info.restype = None
 lib.set_log_level_debug.argtypes = []
 lib.set_log_level_debug.restype = None
 
+lib.set_log_level_verbose.argtypes = []
+lib.set_log_level_verbose.restype = None
+
 def set_log_none(): lib.set_log_level_none()
 def set_log_critical(): lib.set_log_level_critical()
 def set_log_error(): lib.set_log_level_error()
 def set_log_warning(): lib.set_log_level_warning()
 def set_log_info(): lib.set_log_level_info()
 def set_log_debug(): lib.set_log_level_debug()
+def set_log_verbose(): lib.set_log_level_verbose()

@@ -188,10 +188,10 @@ int vbar_fault(void *vbar, uint64_t offset, uint64_t size, uint32_t *signature) 
 
     size_t page_end = VBAR_GET_PAGE_NR_UP(offset + size);
 
-    log(DEBUG, "%s (start): offset=%lldk, size=%lldk\n", __func__, (ull)(offset / K), (ull)(size / K));
+    log(VERBOSE, "%s (start): offset=%lldk, size=%lldk\n", __func__, (ull)(offset / K), (ull)(size / K));
 
     if (page_end > mv->watermark) {
-        log(DEBUG, "VBAR Allocation is above watermark\n");
+        log(VERBOSE, "VBAR Allocation is above watermark\n");
         return VBAR_FAULT_OOM;
     }
 
@@ -234,7 +234,7 @@ int vbar_fault(void *vbar, uint64_t offset, uint64_t size, uint32_t *signature) 
         rp->pinned = true;
     }
 
-    log(DEBUG, "%s (return) %d\n", __func__, ret);
+    log(VERBOSE, "%s (return) %d\n", __func__, ret);
     return ret;
 }
 

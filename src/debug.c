@@ -12,6 +12,7 @@ SHARED_EXPORT void set_log_level_error() { set_log_level(ERROR); }
 SHARED_EXPORT void set_log_level_warning() { set_log_level(WARNING); }
 SHARED_EXPORT void set_log_level_info() { set_log_level(INFO); }
 SHARED_EXPORT void set_log_level_debug() { set_log_level(DEBUG); }
+SHARED_EXPORT void set_log_level_verbose() { set_log_level(VERBOSE); }
 
 static const char *level_strs [] = {
     #define LEVEL_STR1(L) [L] = #L
@@ -21,10 +22,11 @@ static const char *level_strs [] = {
     LEVEL_STR1(WARNING),
     LEVEL_STR1(INFO),
     LEVEL_STR1(DEBUG),
+    LEVEL_STR1(VERBOSE),
 };
 
 const char *get_level_str(int level) {
-    if (level < 0 || level > DEBUG) {
+    if (level < 0 || level > VERBOSE) {
         return "UNKNOWN";
     }
     return level_strs[level];

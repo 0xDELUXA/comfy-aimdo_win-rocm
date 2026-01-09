@@ -39,6 +39,7 @@ enum DebugLevels {
     WARNING,
     INFO,
     DEBUG,
+    VERBOSE,
 };
 
 /* debug.c */

@@ -47,6 +47,9 @@ size_t wddm_budget_deficit(size_t bytes)
     }
 
     deficit = info.CurrentUsage + bytes + WDDM_BUDGET_HEADROOM - info.Budget;
+    if (deficit > 0) {
+        log(DEBUG, "Imminent WDDM VRAM OOM detected (%dkb)\n", (int)(deficit / 1024));
+    }
     return deficit < 0 ? 0 : (size_t)deficit;
 }
 
