@@ -103,3 +103,6 @@ def vbar_signature_compare(a, b):
     if len(a) != len(b):
         raise ValueError(f"Signatures of mismatched length {len(a)} != {len(b)}")
     return memoryview(a) == memoryview(b)
+
+def vbars_analyze():
+    lib.vbars_analyze()

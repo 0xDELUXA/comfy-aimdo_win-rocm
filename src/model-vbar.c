@@ -31,6 +31,44 @@ ModelVBAR lowest_priority;
 
 uint64_t total_vram_usage;
 
+void vbars_analyze() {
+    size_t calculated_total_vram = 0;
+
+    for (ModelVBAR *i = lowest_priority.higher; i != &highest_priority; i = i->higher) {
+        size_t actual_resident_count = 0;
+
+        for (size_t p = 0; p < i->nr_pages; p++) {
+            ResidentPage *rp = &i->residency_map[p];
+
+            if (rp->handle) {
+                actual_resident_count++;
+
+                if (p >= i->watermark) {
+                    log(WARNING, "VBAR %p: Resident page %zu is ABOVE watermark %zu\n",
+                        (void*)i, p, i->watermark);
+                }
+
+                if (rp->pinned) {
+                    log(WARNING, "VBAR %p: Page %zu is PINNED\n", (void*)i, p);
+                }
+            }
+        }
+
+        if (actual_resident_count != i->resident_count) {
+            log(WARNING, "VBAR %p: resident_count sync error! Struct: %zu, Actual: %zu\n",
+                (void*)i, i->resident_count, actual_resident_count);
+        }
+
+        calculated_total_vram += (actual_resident_count * VBAR_PAGE_SIZE);
+
+        log(DEBUG, "VBAR %p: Actual Resident VRAM = %zu MB\n",
+            (void*)i, (actual_resident_count * VBAR_PAGE_SIZE) / M);
+    }
+
+    log(DEBUG, "Global total_vram_usage: %llu MB (Total for VBARs: %zu MB)\n",
+        (ull)(total_vram_usage / M), calculated_total_vram / M);
+}
+
 static inline bool mod1(ModelVBAR *mv, size_t page_nr, bool do_free, bool do_unpin) {
     ResidentPage *rp = &mv->residency_map[page_nr];
     CUdeviceptr vaddr = mv->vbar + page_nr * VBAR_PAGE_SIZE;

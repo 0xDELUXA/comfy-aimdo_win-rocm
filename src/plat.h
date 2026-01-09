@@ -114,4 +114,6 @@ fail:
     return err;
 }
 
-void vbars_free(size_t size); /* model-vbar.c */
+/* model_vbar.c */
+void vbars_analyze();
+void vbars_free(size_t size);
