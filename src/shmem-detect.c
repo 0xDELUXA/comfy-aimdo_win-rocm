@@ -30,7 +30,14 @@ bool wddm_init(int device_id)
     return true;
 }
 
-#define WDDM_BUDGET_HEADROOM (192 * 1024 * 1024)
+/* Apparently this is still too small for all common graphics VRAM spikes.
+ * However we can't pad too much on the smaller cards, and its not the end
+ * of the world if we page out a little bit because it will adapt and correct
+ * quickly.
+ */
+
+/* FIXME: This should be 0 if sysmem fallback is disabled by the user */
+#define WDDM_BUDGET_HEADROOM (512 * 1024 * 1024)
 
 size_t wddm_budget_deficit(size_t bytes)
 {
