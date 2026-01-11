@@ -5,29 +5,29 @@ from . import control
 lib = control.lib
 
 # Bindings
+if lib is not None:
+    lib.vbar_allocate.argtypes = [ctypes.c_uint64, ctypes.c_int]
+    lib.vbar_allocate.restype = ctypes.c_void_p
 
-lib.vbar_allocate.argtypes = [ctypes.c_uint64, ctypes.c_int]
-lib.vbar_allocate.restype = ctypes.c_void_p
+    lib.vbar_prioritize.argtypes = [ctypes.c_void_p]
 
-lib.vbar_prioritize.argtypes = [ctypes.c_void_p]
+    lib.vbar_deprioritize.argtypes = [ctypes.c_void_p]
 
-lib.vbar_deprioritize.argtypes = [ctypes.c_void_p]
+    lib.vbar_get.argtypes = [ctypes.c_void_p]
+    lib.vbar_get.restype = ctypes.c_uint64
 
-lib.vbar_get.argtypes = [ctypes.c_void_p]
-lib.vbar_get.restype = ctypes.c_uint64
+    lib.vbar_free.argtypes = [ctypes.c_void_p]
 
-lib.vbar_free.argtypes = [ctypes.c_void_p]
+    lib.vbar_fault.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint32)]
+    lib.vbar_fault.restype = ctypes.c_int
 
-lib.vbar_fault.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint32)]
-lib.vbar_fault.restype = ctypes.c_int
+    lib.vbar_unpin.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64]
 
-lib.vbar_unpin.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64]
+    lib.vbar_loaded_size.argtypes = [ctypes.c_void_p]
+    lib.vbar_loaded_size.restype = ctypes.c_size_t
 
-lib.vbar_loaded_size.argtypes = [ctypes.c_void_p]
-lib.vbar_loaded_size.restype = ctypes.c_size_t
-
-lib.vbar_free_memory.argtypes = [ctypes.c_void_p, ctypes.c_uint64]
-lib.vbar_free_memory.restype = ctypes.c_uint64
+    lib.vbar_free_memory.argtypes = [ctypes.c_void_p, ctypes.c_uint64]
+    lib.vbar_free_memory.restype = ctypes.c_uint64
 
 class ModelVBAR:
     def __init__(self, size, device):

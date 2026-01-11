@@ -57,7 +57,22 @@ jobs:
           cl.exe /LD /O2 src/model-vbar.c src/pyt-cu-plug-alloc.c src/debug.c src/shmem-detect.c -IC:/CUDA_SDK/include /Fe:comfy_aimdo/aimdo.dll /link /LIBPATH:C:/CUDA_SDK/lib/x64 cuda.lib cudart.lib dxgi.lib dxguid.lib
         shell: cmd
 
+      - name: Build default Stub Wheel
+        if: runner.os == 'Linux'
+        run: |
+          pip install build
+          rm -f comfy_aimdo/*.so comfy_aimdo/*.dll
+          python -m build --wheel --outdir wheelhouse-none/
+
+      - name: Upload Stub Wheel
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-none
+          path: ./wheelhouse-none/*.whl
+
       - name: Build wheels
+        if: runner.os == 'Linux'
         uses: pypa/cibuildwheel@v2.21.3
         env:
           CIBW_MANYLINUX_X86_64_IMAGE: custom-cuda-builder 
@@ -70,7 +85,8 @@ jobs:
             -lcuda -o comfy_aimdo/aimdo.so
           CIBW_REPAIR_WHEEL_COMMAND_LINUX: "auditwheel repair --exclude libcuda.so.1 -w {dest_dir} {wheel}"
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.os }}
           path: ./wheelhouse/*.whl
