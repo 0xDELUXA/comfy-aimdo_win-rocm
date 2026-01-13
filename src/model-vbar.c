@@ -289,8 +289,12 @@ void vbar_unpin(void *vbar, uint64_t offset, uint64_t size) {
 
     size_t page_end = VBAR_GET_PAGE_NR_UP(offset + size);
 
+    if (page_end > mv->watermark) {
+        CHECK_CU(cuCtxSynchronize());
+    }
+
     for (uint64_t page_nr = VBAR_GET_PAGE_NR(offset); page_nr < page_end; page_nr++) {
-        mod1(mv, page_nr, page_end > mv->watermark, true);
+        mod1(mv, page_nr, page_nr >= mv->watermark, true);
     }
 }
 
@@ -321,6 +325,8 @@ uint64_t vbar_free_memory(void *vbar, uint64_t size) {
     size_t pages_freed = 0;
 
     log(DEBUG, "%s (start): size=%lldk\n", __func__, (ull)size);
+
+    CHECK_CU(cuCtxSynchronize());
 
     for (;pages_to_free && mv->watermark; mv->watermark--) {
         /* In theory we should never have pins here, but

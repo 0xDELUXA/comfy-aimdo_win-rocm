@@ -71,10 +71,9 @@ dummy = torch.randn(1, device=torch.device("cuda:0"))
 
 dtype = torch.float16
 
-vbar1 = ModelVBAR(14 * 1024**3, device=0)
+vbar1 = ModelVBAR(128 * 1024**3, device=0)
 
-# ~200MB weights
-shape = (10240, 10240) 
+shape = (20480, 10240)
 num_layers = 8 * 1024 **3 // (10240 * 10240 * dtype.itemsize)
 
 weights1 = [vbar1.alloc(math.prod(shape) * dtype.itemsize) for _ in range(num_layers)]
