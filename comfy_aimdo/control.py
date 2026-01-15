@@ -64,10 +64,13 @@ def init(device_id: int):
         lib.wddm_cleanup.argtypes = []
         lib.wddm_cleanup.restype = None
 
-        if not lib.wddm_init(device_id):
-            lib = None
-            return False
+    return True
 
+def init_device(device_id: int):
+    if lib is None:
+        return False
+    if platform.system() == "Windows" and not lib.wddm_init(device_id):
+        return False
     return True
 
 def deinit():
