@@ -8,6 +8,7 @@ typedef struct {
     void* base_address;
     uint64_t size;
     bool is_mapped;
+    CRITICAL_SECTION lock;
 } MMAPReservation;
 
 #undef log
@@ -32,28 +33,32 @@ LONG CALLBACK PageFaultHandler(PEXCEPTION_POINTERS ExceptionInfo) {
             continue;
         }
 
+        EnterCriticalSection(&res->lock);
         if (res->is_mapped) {
-            log(WARNING, "VEH: Fault in already mapped region at %lu\n", GetLastError());
+            LeaveCriticalSection(&res->lock);
             return EXCEPTION_CONTINUE_EXECUTION;
         }
 
 
-        log(DEBUG, "VEH: Fault at %p in Parking Lot %p. Mapping file...\n", (void*)faulting_addr, res->base_address);
+        log(DEBUG, "RBAR/VEH: Fault at %p in RBAR@%p. Mapping file...\n", (void*)faulting_addr, res->base_address);
 
         res->hMapping = CreateFileMapping(res->hFile, NULL, PAGE_READONLY, 0, 0, NULL);
         if (!res->hMapping) {
-            log(ERROR, "VEH: Failed to create file mapping. OS Error: %lu\n", GetLastError());
+            log(ERROR, "RBAR/VEH: Failed to create file mapping. OS Error: %lu\n", GetLastError());
+            LeaveCriticalSection(&res->lock);
             return EXCEPTION_CONTINUE_SEARCH;
         }
 
         if (!MapViewOfFile3(res->hMapping, GetCurrentProcess(), res->base_address, 0, res->size,
                             MEM_REPLACE_PLACEHOLDER, PAGE_READONLY, NULL, 0)) {
-            log(ERROR, "VEH: MapViewOfFileEx failed. Address likely occupied. OS Error: %lu\n", GetLastError());
+            log(ERROR, "RBAR/VEH: MapViewOfFile3 failed. Address likely occupied. OS Error: %lu\n", GetLastError());
+            LeaveCriticalSection(&res->lock);
             return EXCEPTION_CONTINUE_SEARCH;
         }
 
         res->is_mapped = true;
-        log(DEBUG, "VEH: Parking Lot filled successfully at %p\n", res->base_address);
+        log(DEBUG, "RBAR/VEH: Fault filled successfully at %p\n", res->base_address);
+        LeaveCriticalSection(&res->lock);
         return EXCEPTION_CONTINUE_EXECUTION;
     }
     return EXCEPTION_CONTINUE_SEARCH;
@@ -65,9 +70,9 @@ static inline bool one_time_setup() {
     if (one_time_setup_done) {
         return true;
     }
-    log(DEBUG, "VEH: Registering FaultHandler\n");
+    log(DEBUG, "RBAR: Registering FaultHandler\n");
     if (!AddVectoredExceptionHandler(1, PageFaultHandler)) {
-        log(ERROR, "VEH: Failed to register Exception Handler!\n");
+        log(ERROR, "RBAR: Failed to register Exception Handler!\n");
         return false;
     }
     one_time_setup_done = true;
@@ -105,11 +110,12 @@ void *rbar_allocate(char *file_path) {
     LARGE_INTEGER fs;
     GetFileSizeEx(res->hFile, &fs);
     res->size = fs.QuadPart;
+    InitializeCriticalSection(&res->lock);
 
     res->base_address = VirtualAlloc2(NULL, NULL, res->size, MEM_RESERVE | MEM_RESERVE_PLACEHOLDER,
                                       PAGE_NOACCESS, NULL, 0);
     if (!res->base_address) {
-        log(ERROR, "VBAR: VirtualAlloc2 failed to reserve address space. OS Error: %lu\n", GetLastError());
+        log(ERROR, "RBAR: VirtualAlloc2 failed to reserve address space. OS Error: %lu\n", GetLastError());
         CloseHandle(res->hFile);
         return NULL;
     }
@@ -129,6 +135,7 @@ void rbar_deallocate(void *base_address) {
             continue;
         }
 
+        EnterCriticalSection(&res->lock);
         if (res->is_mapped) {
             UnmapViewOfFile2(GetCurrentProcess(), res->base_address, 0);
             if (res->hMapping) {
@@ -144,25 +151,33 @@ void rbar_deallocate(void *base_address) {
         if (res->hFile && res->hFile != INVALID_HANDLE_VALUE) {
             CloseHandle(res->hFile);
         }
+        LeaveCriticalSection(&res->lock);
+        DeleteCriticalSection(&res->lock);
 
-        log(DEBUG, "VBAR: Fully unreserved and closed %p\n", base_address);
+        log(DEBUG, "RBAR: Fully unreserved and closed %p\n", base_address);
         memset(res, 0, sizeof(*res));
         return;
     }
 
-    log(ERROR, "VBAR: Attempted to unreserve unknown pointer %p\n", base_address);
+    log(ERROR, "RBAR: Attempted to unreserve unknown pointer %p\n", base_address);
 }
 
 SHARED_EXPORT
 void rbars_unmap_all() {
-    log(DEBUG, "VBAR: Clearing all active mappings to non-committed state...\n");
+    log(DEBUG, "RBAR: Clearing all active mappings to non-committed state...\n");
     for (int i = 0; i < MAX_RESERVATIONS; i++) {
         MMAPReservation* res = &g_reservations[i];
-        if (!res->base_address || !res->is_mapped) {
+        if (!res->base_address) {
+            continue;
+        }
+        EnterCriticalSection(&res->lock);
+        if (!res->is_mapped) {
+            LeaveCriticalSection(&res->lock);
             continue;
         }
         if (!UnmapViewOfFile2(GetCurrentProcess(), res->base_address, MEM_PRESERVE_PLACEHOLDER)) {
             log(ERROR, "RBAR: Atomic unmap failed at %p. Error: %lu\n", res->base_address, GetLastError());
+            LeaveCriticalSection(&res->lock);
             continue;
         }
         if (res->hMapping) {
@@ -170,6 +185,7 @@ void rbars_unmap_all() {
         }
             
         res->is_mapped = false;
-        log(DEBUG, "VBAR: Unmapped and re-reserved Parking Lot at %p\n", g_reservations[i].base_address);
+        LeaveCriticalSection(&res->lock);
+        log(DEBUG, "RBAR: Unmapped %p\n", g_reservations[i].base_address);
     }
 }
