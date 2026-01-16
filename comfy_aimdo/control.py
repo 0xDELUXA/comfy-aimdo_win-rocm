@@ -99,8 +99,8 @@ def init():
         lib.rbar_allocate.argtypes = [ctypes.c_char_p]
         lib.rbar_allocate.restype = ctypes.c_void_p
 
-        lib.rbar_unreserve.argtypes = [ctypes.c_void_p]
-        lib.rbar_unreserve.restype = None
+        lib.rbar_deallocate.argtypes = [ctypes.c_void_p]
+        lib.rbar_deallocate.restype = None
 
         lib.rbars_unmap_all.argtypes = []
         lib.rbars_unmap_all.restype = None
