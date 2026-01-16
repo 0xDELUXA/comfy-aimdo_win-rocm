@@ -68,7 +68,7 @@ if packaging.version.Version(torch.__version__) >= packaging.version.Version("2.
         }
     )
 
-def safetensors_load_rbar(ckpt):
+def safetensors_load_rbar(ckpt, autoref=True):
     rbar = model_rbar.ModelRBAR(ckpt)
     ptr = rbar()
 
@@ -85,6 +85,9 @@ def safetensors_load_rbar(ckpt):
     header = json.loads(header_json)
 
     data_area = torch.from_numpy(data_buffer)[8 + header_size:]
+    if autoref:
+        storage = data_area.untyped_storage()
+        storage.__aimdo_rbar_ref__ = rbar
 
     sd = {}
     for name, info in header.items():
