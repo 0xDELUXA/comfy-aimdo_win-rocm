@@ -56,6 +56,12 @@ LONG CALLBACK PageFaultHandler(PEXCEPTION_POINTERS ExceptionInfo) {
             return EXCEPTION_CONTINUE_SEARCH;
         }
 
+        WIN32_MEMORY_RANGE_ENTRY entry;
+        entry.VirtualAddress = res->base_address;
+        entry.NumberOfBytes  = res->size;
+        if (!PrefetchVirtualMemory(GetCurrentProcess(), 1, &entry, 0)) {
+            log(WARNING, "RBAR/VEH: Prefetch hint failed (non-critical). Error: %lu\n", GetLastError());
+        }
         res->is_mapped = true;
         log(DEBUG, "RBAR/VEH: Fault filled successfully at %p\n", res->base_address);
         LeaveCriticalSection(&res->lock);
