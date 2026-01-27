@@ -92,4 +92,4 @@ def set_log_debug(): lib.set_log_level_debug()
 def set_log_verbose(): lib.set_log_level_verbose()
 
 def get_total_vram_usage():
-    return lib.get_total_vram_usage()
+    return 0 if lib is None else lib.get_total_vram_usage()
