@@ -14,15 +14,18 @@
 
 #define SHARED_EXPORT __declspec(dllexport)
 
-size_t wddm_budget_deficit(size_t bytes); /* shmem-detect.c */
+/* shmem-detect.c */
+bool plat_init(CUdevice dev);
+void plat_cleanup();
+size_t wddm_budget_deficit(size_t bytes);
 
 #else
 
 #define SHARED_EXPORT
 
-static inline size_t wddm_budget_deficit(size_t bytes) {
-    return 0;
-}
+static inline bool plat_init(CUdevice dev) { return true; }
+static inline void plat_cleanup() {}
+static inline size_t wddm_budget_deficit(size_t bytes) { return 0; }
 
 #endif
 
@@ -61,7 +64,9 @@ void log_reset_shots();
 #define log(level, ...) do_log(false, level, __VA_ARGS__)
 #define log_shot(level, ...) do_log(true, level, __VA_ARGS__)
 
-extern uint64_t total_vram_usage; /* control.c */
+/* control.c */
+extern uint64_t vram_capacity;
+extern uint64_t total_vram_usage;
 
 static inline int check_cu_impl(CUresult res, const char *label) {
     if (res != CUDA_SUCCESS && res != CUDA_ERROR_OUT_OF_MEMORY) {

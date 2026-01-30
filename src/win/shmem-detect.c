@@ -3,6 +3,8 @@
 #include <windows.h>
 #include <dxgi1_4.h>
 
+#include <cuda.h>
+
 typedef SSIZE_T ssize_t;
 
 static struct {
@@ -10,24 +12,48 @@ static struct {
     IDXGIAdapter3 *adapter;
 } G_WDDM;
 
-static bool wddm_inited;
-
-SHARED_EXPORT
-bool wddm_init(int device_id)
+bool plat_init(CUdevice dev)
 {
-    if (FAILED(CreateDXGIFactory1(&IID_IDXGIFactory4, (void**)&G_WDDM.factory))) {
-        log(WARNING, "aimdo WDDM init failed (1). aimdo is blind to the CUDA Sysmem Fallback Policy\n")
-        return false;
+    int fail_code = 1;
+    LUID cuda_luid;
+    IDXGIAdapter1 *adapter;
+    UINT i;
+    unsigned int node_mask;
+
+    adapter = NULL;
+
+    if (!CHECK_CU(cuDeviceGetLuid((char *)&cuda_luid, &node_mask, dev))) {
+        goto fail;
     }
 
-    if (FAILED(G_WDDM.factory->lpVtbl->EnumAdapters1(G_WDDM.factory, device_id, (IDXGIAdapter1**)&G_WDDM.adapter))) {
-        G_WDDM.factory->lpVtbl->Release(G_WDDM.factory);
-        log(WARNING, "aimdo WDDM init failed (2). aimdo is blind to the CUDA Sysmem Fallback Policy\n")
-        return false;
+    fail_code++;
+
+    if (FAILED(CreateDXGIFactory1(&IID_IDXGIFactory4, (void **)&G_WDDM.factory))) {
+        goto fail;
     }
 
-    wddm_inited = true;
-    return true;
+    for (i = 0; G_WDDM.factory->lpVtbl->EnumAdapters1(G_WDDM.factory, i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i) {
+        DXGI_ADAPTER_DESC1 desc;
+        adapter->lpVtbl->GetDesc1(adapter, &desc);
+
+        if (desc.AdapterLuid.LowPart == cuda_luid.LowPart &&
+            desc.AdapterLuid.HighPart == cuda_luid.HighPart) {
+
+            if (FAILED(adapter->lpVtbl->QueryInterface(adapter, &IID_IDXGIAdapter3, (void **)&G_WDDM.adapter))) {
+                adapter->lpVtbl->Release(adapter);
+                break;
+            }
+
+            adapter->lpVtbl->Release(adapter);
+            return true;
+        }
+        adapter->lpVtbl->Release(adapter);
+    }
+
+fail:
+    G_WDDM.adapter = NULL;
+    log(WARNING, "comfy-aimdo WDDM init failed (%d). aimdo is blind to the CUDA Sysmem Fallback Policy\n", fail_code)
+    return false;
 }
 
 /* Apparently this is still too small for all common graphics VRAM spikes.
@@ -41,28 +67,29 @@ bool wddm_init(int device_id)
 
 size_t wddm_budget_deficit(size_t bytes)
 {
-    ssize_t deficit;
     DXGI_QUERY_VIDEO_MEMORY_INFO info;
+    uint64_t effective_budget = vram_capacity;
+    ssize_t deficit;
 
-    if (!wddm_inited) {
-        return 0;
+    if (G_WDDM.adapter) {
+        if (SUCCEEDED(G_WDDM.adapter->lpVtbl->QueryVideoMemoryInfo(G_WDDM.adapter, 0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &info))) {
+            effective_budget = info.Budget;
+        } else {
+            log(WARNING, "comfy-aimdo WDDM VRAM query failed. Using physical capacity as fallback\n");
+        }
     }
 
-    if (FAILED(G_WDDM.adapter->lpVtbl->QueryVideoMemoryInfo(G_WDDM.adapter, 0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &info))) {
-        log_shot(WARNING, "aimdo WDDM VRAM query failed. aimdo is blind to the CUDA Sysmem Fallback Policy\n");
-        return 0;
-    }
+    deficit = (ssize_t)(total_vram_usage + bytes + WDDM_BUDGET_HEADROOM) - (ssize_t)effective_budget;
 
-    deficit = total_vram_usage + bytes + WDDM_BUDGET_HEADROOM - info.Budget;
     if (deficit > 0) {
-        log(DEBUG, "Imminent WDDM VRAM OOM detected %lld/%lld MB VRAM used (+%lldMB)\n",
-                    (ull)info.CurrentUsage / M, (ull)info.Budget / M, (ull)bytes / M);
+        log(DEBUG, "Imminent WDDM VRAM OOM detected. Budget: %llu MB, Request: %zu MB, Deficit: %zd MB\n",
+            effective_budget / (1024 * 1024), bytes / (1024 * 1024), deficit / (1024 * 1024));
     }
-    return deficit < 0 ? 0 : (size_t)deficit;
+
+    return (deficit > 0) ? (size_t)deficit : 0;
 }
 
-SHARED_EXPORT
-void wddm_cleanup()
+void plat_cleanup()
 {
     if (G_WDDM.adapter) {
         G_WDDM.adapter->lpVtbl->Release(G_WDDM.adapter);

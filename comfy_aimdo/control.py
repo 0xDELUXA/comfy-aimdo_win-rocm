@@ -59,27 +59,23 @@ def init():
     lib.get_total_vram_usage.argtypes = []
     lib.get_total_vram_usage.restype = ctypes.c_uint64
 
-    if platform.system() == "Windows":
+    lib.init.argtypes = [ctypes.c_int]
+    lib.init.restype = ctypes.c_bool
 
-        lib.wddm_init.argtypes = [ctypes.c_int]
-        lib.wddm_init.restype = ctypes.c_bool
-
-        lib.wddm_cleanup.argtypes = []
-        lib.wddm_cleanup.restype = None
+    lib.cleanup.argtypes = []
+    lib.cleanup.restype = None
 
     return True
 
 def init_device(device_id: int):
     if lib is None:
         return False
-    if platform.system() == "Windows" and not lib.wddm_init(device_id):
-        return False
-    return True
+    return lib.init(device_id)
 
 def deinit():
     global lib
-    if lib is not None and platform.system() == "Windows":
-        lib.wddm_cleanup()
+    if lib is not None:
+        lib.cleanup()
     lib = None
 
 
