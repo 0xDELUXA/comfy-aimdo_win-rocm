@@ -54,6 +54,7 @@ void log_reset_shots();
         _sc_ = (do_shot_counter) ? log_shot_counter : 0;                                        \
         fprintf(stderr, "aimdo: %s:%d:%s:", __FILE__, __LINE__, get_level_str(level));          \
         fprintf(stderr, __VA_ARGS__);                                                           \
+        fflush(stderr);                                                                         \
     }                                                                                           \
 }
 
