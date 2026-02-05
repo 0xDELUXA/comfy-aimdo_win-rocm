@@ -37,11 +37,17 @@ static inline void one_time_setup() {
     }
 }
 
+static bool vbars_dirty;
+
 SHARED_EXPORT
 void vbars_analyze() {
     size_t calculated_total_vram = 0;
 
     one_time_setup();
+    if (!vbars_dirty) {
+        return;
+    }
+    vbars_dirty = false;
     log(DEBUG, "---------------- VBAR Usage ---------------\n")
 
     for (ModelVBAR *i = lowest_priority.higher; i && i != &highest_priority; i = i->higher) {
@@ -101,6 +107,7 @@ void vbars_free(size_t size) {
     size_t pages_needed = VBAR_GET_PAGE_NR_UP(size);
 
     one_time_setup();
+    vbars_dirty = true;
 
     if (!size) {
         return;
@@ -167,6 +174,7 @@ void *vbar_allocate(uint64_t size, int device) {
     one_time_setup();
     log_reset_shots();
     log(DEBUG, "%s (start): size=%zuM, device=%d\n", __func__, size / M, device);
+    vbars_dirty = true;
 
     size_t nr_pages = VBAR_GET_PAGE_NR_UP(size);
     size_t nr_pages_max = VBAR_GET_PAGE_NR(vram_capacity);
@@ -200,8 +208,10 @@ SHARED_EXPORT
 void vbar_prioritize(void *vbar) {
     ModelVBAR *mv = (ModelVBAR *)vbar;
 
-    log_reset_shots();
     log(DEBUG, "%s vbar=%p\n", __func__, vbar);
+    vbars_dirty = true;
+
+    log_reset_shots();
 
     remove_vbar(mv);
     insert_vbar(mv);
@@ -213,8 +223,10 @@ SHARED_EXPORT
 void vbar_deprioritize(void *vbar) {
     ModelVBAR *mv = (ModelVBAR *)vbar;
 
-    log_reset_shots();
     log(DEBUG, "%s vbar=%p\n", __func__, vbar);
+    vbars_dirty = true;
+
+    log_reset_shots();
 
     remove_vbar(mv);
     insert_vbar_last(mv);
@@ -238,10 +250,11 @@ int vbar_fault(void *vbar, uint64_t offset, uint64_t size, uint32_t *signature) 
 
     size_t page_end = VBAR_GET_PAGE_NR_UP(offset + size);
 
-    log(VERBOSE, "%s (start): offset=%lldk, size=%lldk\n", __func__, (ull)(offset / K), (ull)(size / K));
+    log(VVERBOSE, "%s (start): offset=%lldk, size=%lldk\n", __func__, (ull)(offset / K), (ull)(size / K));
+    vbars_dirty = true;
 
     if (page_end > mv->watermark) {
-        log(VERBOSE, "VBAR Allocation is above watermark\n");
+        log(VVERBOSE, "VBAR Allocation is above watermark\n");
         return VBAR_FAULT_OOM;
     }
 
@@ -254,6 +267,8 @@ int vbar_fault(void *vbar, uint64_t offset, uint64_t size, uint32_t *signature) 
             signature[signature_index++] = rp->serial;
             continue;
         }
+
+        log(VERBOSE, "VBAR needs to allocate VRAM for page %d\n", (int)page_nr);
 
         if (wddm_budget_deficit(mv->device, VBAR_PAGE_SIZE) ||
             (err = three_stooges(vaddr, VBAR_PAGE_SIZE, mv->device, &rp->handle)) != CUDA_SUCCESS) {
@@ -284,7 +299,7 @@ int vbar_fault(void *vbar, uint64_t offset, uint64_t size, uint32_t *signature) 
         rp->pinned = true;
     }
 
-    log(VERBOSE, "%s (return) %d\n", __func__, ret);
+    log(VVERBOSE, "%s (return) %d\n", __func__, ret);
     return ret;
 }
 
@@ -292,6 +307,8 @@ SHARED_EXPORT
 void vbar_unpin(void *vbar, uint64_t offset, uint64_t size) {
     ModelVBAR *mv = (ModelVBAR *)vbar;
 
+    log(VVERBOSE, "%s (start): offset=%lldk, size=%lldk\n", __func__, (ull)(offset / K), (ull)(size / K));
+    vbars_dirty = true;
     size_t page_end = VBAR_GET_PAGE_NR_UP(offset + size);
 
     if (page_end > mv->watermark) {
@@ -306,6 +323,9 @@ void vbar_unpin(void *vbar, uint64_t offset, uint64_t size) {
 SHARED_EXPORT
 void vbar_free(void *vbar) {
     ModelVBAR *mv = (ModelVBAR *)vbar;
+
+    log(DEBUG, "%s: vbar=%p\n", __func__, vbar);
+    vbars_dirty = true;
 
     CHECK_CU(cuCtxSynchronize());
 
@@ -330,6 +350,7 @@ uint64_t vbar_free_memory(void *vbar, uint64_t size) {
     size_t pages_freed = 0;
 
     log(DEBUG, "%s (start): size=%lldk\n", __func__, (ull)size);
+    vbars_dirty = true;
 
     CHECK_CU(cuCtxSynchronize());
 

@@ -56,6 +56,9 @@ def init():
     lib.set_log_level_verbose.argtypes = []
     lib.set_log_level_verbose.restype = None
 
+    lib.set_log_level_vverbose.argtypes = []
+    lib.set_log_level_vverbose.restype = None
+
     lib.get_total_vram_usage.argtypes = []
     lib.get_total_vram_usage.restype = ctypes.c_uint64
 
@@ -86,6 +89,7 @@ def set_log_warning(): lib.set_log_level_warning()
 def set_log_info(): lib.set_log_level_info()
 def set_log_debug(): lib.set_log_level_debug()
 def set_log_verbose(): lib.set_log_level_verbose()
+def set_log_vverbose(): lib.set_log_level_vverbose()
 
 def get_total_vram_usage():
     return 0 if lib is None else lib.get_total_vram_usage()
