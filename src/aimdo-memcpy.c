@@ -124,7 +124,7 @@ void vbar_slot_destroy(VBarSlot *slot) {
     thread_join(slot->thread);
 
     dynbuf_destroy(&slot->staging_pin);
-    CHECK_CU(cuMemHostFree(slot->host_signal));
+    CHECK_CU(cuMemFreeHost(slot->host_signal));
     mutex_destroy(slot->mutex);
     free(slot);
 }
