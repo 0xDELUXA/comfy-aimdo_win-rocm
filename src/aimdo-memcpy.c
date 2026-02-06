@@ -52,7 +52,6 @@ static THREAD_FUNC worker_proc(void *arg) {
             slot->counter++;
             CHECK_CU(cuMemcpyHtoDAsync(slot->dest, (uintptr_t)final_src, slot->size, slot->stream));
             CHECK_CU(cuStreamWriteValue32(slot->stream, slot->dev_signal, slot->counter, CU_STREAM_WRITE_VALUE_DEFAULT));
-            CHECK_CU(cuStreamFlush(slot->stream));
         }
 
         slot->dest = 0;
@@ -81,7 +80,7 @@ void *vbar_slot_create() {
     mutex_lock(slot->mutex);
 
     if (!thread_create(&slot->thread, worker_proc, slot)) {
-        CHECK_CU(cuMemHostFree(slot->host_signal));
+        CHECK_CU(cuMemFreeHost(slot->host_signal));
         dynbuf_destroy(&slot->staging_pin);
         mutex_destroy(slot->mutex);
         free(slot);
