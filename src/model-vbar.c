@@ -253,6 +253,8 @@ int vbar_fault(void *vbar, uint64_t offset, uint64_t size, uint32_t *signature) 
     log(VVERBOSE, "%s (start): offset=%lldk, size=%lldk\n", __func__, (ull)(offset / K), (ull)(size / K));
     vbars_dirty = true;
 
+    vbars_free(wddm_budget_deficit(mv->device, 0));
+
     if (page_end > mv->watermark) {
         log(VVERBOSE, "VBAR Allocation is above watermark\n");
         return VBAR_FAULT_OOM;
