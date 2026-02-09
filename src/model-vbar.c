@@ -15,6 +15,7 @@ typedef struct ModelVBAR {
     CUdeviceptr vbar;
     size_t nr_pages;
     size_t watermark;
+    size_t watermark_limit;
 
     int device;
 
@@ -117,7 +118,7 @@ void vbars_free(size_t size) {
 
     for (ModelVBAR *i = lowest_priority.higher; pages_needed && i != &highest_priority;
          i = i->higher) {
-        for (;pages_needed && i->watermark; i->watermark--) {
+        for (;pages_needed && i->watermark > i->watermark_limit; i->watermark--) {
             if (mod1(i, i->watermark - 1, true, false)) {
                 pages_needed--;
             }
@@ -140,7 +141,8 @@ static void vbars_free_for_vbar(ModelVBAR *mv, size_t target) {
     for (ModelVBAR *i = lowest_priority.higher;
          cursor < target && cursor < mv->watermark && i != &highest_priority;
          i = i->higher) {
-        for (; cursor < target && cursor < mv->watermark && i->watermark; i->watermark--) {
+        for (; cursor < target && cursor < mv->watermark && i->watermark > i->watermark_limit;
+             i->watermark--) {
             if (mod1(i, i->watermark - 1, true, false)) {
                 cursor = move_cursor_to_absent(mv, cursor + 1);
             }
@@ -202,6 +204,24 @@ void *vbar_allocate(uint64_t size, int device) {
 
     log(DEBUG, "%s (return): vbar=%p\n", __func__, (void *)mv);
     return mv;
+}
+
+SHARED_EXPORT
+void vbar_set_watermark_limit(void *vbar, uint64_t size) {
+    ModelVBAR *mv = (ModelVBAR *)vbar;
+
+    log(DEBUG, "%s: size=%zu\n", __func__, size);
+    mv->watermark_limit = VBAR_GET_PAGE_NR_UP(size);
+}
+
+SHARED_EXPORT
+void vbars_reset_watermark_limits() {
+    one_time_setup();
+    log(VERBOSE, "%s\n", __func__);
+
+    for (ModelVBAR *i = lowest_priority.higher; i && i != &highest_priority; i = i->higher) {
+        i->watermark_limit = 0;
+    }
 }
 
 SHARED_EXPORT
@@ -354,7 +374,7 @@ uint64_t vbar_free_memory(void *vbar, uint64_t size) {
 
     CHECK_CU(cuCtxSynchronize());
 
-    for (;pages_to_free && mv->watermark; mv->watermark--) {
+    for (;pages_to_free && mv->watermark > mv->watermark_limit; mv->watermark--) {
         /* In theory we should never have pins here, but
          * respect pins if it really comes up.
          */

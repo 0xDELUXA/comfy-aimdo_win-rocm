@@ -9,6 +9,10 @@ if lib is not None:
     lib.vbar_allocate.argtypes = [ctypes.c_uint64, ctypes.c_int]
     lib.vbar_allocate.restype = ctypes.c_void_p
 
+    lib.vbar_set_watermark_limit.argtypes = [ctypes.c_void_p, ctypes.c_uint64]
+
+    lib.vbars_reset_watermark_limits.argtypes = []
+
     lib.vbar_prioritize.argtypes = [ctypes.c_void_p]
 
     lib.vbar_deprioritize.argtypes = [ctypes.c_void_p]
@@ -80,6 +84,9 @@ class ModelVBAR:
     def loaded_size(self):
         return lib.vbar_loaded_size(self._ptr)
 
+    def set_watermark_limit(self, size_bytes):
+        lib.vbar_set_watermark_limit(self._ptr, size_bytes)
+
     def free_memory(self, size_bytes):
         return lib.vbar_free_memory(self._ptr, int(size_bytes))
 
@@ -106,3 +113,6 @@ def vbar_signature_compare(a, b):
 
 def vbars_analyze():
     lib.vbars_analyze()
+
+def vbars_reset_watermark_limits():
+    lib.vbars_reset_watermark_limits()
