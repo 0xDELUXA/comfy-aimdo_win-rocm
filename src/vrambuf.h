@@ -12,7 +12,14 @@ typedef struct VramBuffer {
     CUmemGenericAllocationHandle handles[1];
 } VramBuffer;
 
+SHARED_EXPORT
 void *vrambuf_create(int device, size_t max_size);
+
+SHARED_EXPORT
 bool vrambuf_grow(void *arg, size_t required_size);
+
+SHARED_EXPORT
 void vrambuf_destroy(void *arg);
+
+SHARED_EXPORT
 CUdeviceptr vrambuf_get(void *arg);

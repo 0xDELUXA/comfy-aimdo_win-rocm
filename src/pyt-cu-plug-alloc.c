@@ -25,7 +25,7 @@ void *alloc_fn(size_t size, int device, cudaStream_t stream) {
         virt_size = MIN_ALLOC;
     }
 
-    entry = vrambuf_create(virt_size, device);
+    entry = vrambuf_create(device, virt_size);
     if (!entry) {
         return NULL;
     }
