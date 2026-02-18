@@ -140,12 +140,19 @@ bool torch_init();
 static inline bool torch_init() { return true; }
 #endif
 
-extern void (*empty_cache)(void);
+typedef struct {
+    uint64_t high;
+    uint64_t low;
+} MempoolId_t;
+
+extern void (*empty_cache)(MempoolId_t);
+
 static inline void torch_empty_cache() {
+    MempoolId_t default_pool = {0, 0};
     if (!empty_cache) {
         return;
     }
     CHECK_CU(cuCtxSynchronize());
-    log(VERBOSE, "%s: executed", __func__);
-    empty_cache();
+    log(VERBOSE, "%s: executed\n", __func__);
+    empty_cache(default_pool);
 }
