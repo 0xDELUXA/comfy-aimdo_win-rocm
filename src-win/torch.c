@@ -1,5 +1,5 @@
-#include <windows.h>
 #include "plat.h"
+#include <windows.h>
 
 bool torch_init() {
     // 1. Target the actual CUDA backend DLL
