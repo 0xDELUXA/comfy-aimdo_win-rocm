@@ -4,14 +4,12 @@
 #include <stddef.h>
 
 bool torch_init() {
-    void* handle = RTLD_DEFAULT;
+    // Open the specific library to access local symbols
+    void* handle = dlopen("libtorch_python.so", RTLD_LAZY | RTLD_NOLOAD);
+    if (!handle) handle = RTLD_DEFAULT;
 
-    // Use the exact signature for the cast to satisfy GCC
-    empty_cache = (void(*)(MempoolId_t))dlsym(handle, "_ZN3c104cuda21CUDACachingAllocator10emptyCacheENS0_11MempoolId_tE");
-
-    if (!empty_cache) {
-        empty_cache = (void(*)(MempoolId_t))dlsym(handle, "_ZN3c104cuda21CUDACachingAllocator10emptyCacheEv");
-    }
+    // Use the symbol you found in your nm scan
+    empty_cache = (void(*)(MempoolId_t))dlsym(handle, "_Z21THCPModule_emptyCacheP7_objectS0_");
 
     if (!empty_cache) {
         log(ERROR, "torch_init: Could not resolve Linux C++ emptyCache symbol.\n");
