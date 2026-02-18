@@ -1,12 +1,5 @@
-#include "plat.h"
-
-#include <windows.h>
-
 #include <windows.h>
 #include "plat.h"
-
-// Pointer to the raw C++ function (no GIL needed)
-void (*empty_cache)(void) = NULL;
 
 bool torch_init() {
     // 1. Target the actual CUDA backend DLL

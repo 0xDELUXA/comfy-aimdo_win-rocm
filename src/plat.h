@@ -134,11 +134,7 @@ fail:
 void vbars_free(size_t size);
 
 /* torch.c */
-#if defined(_WIN32) || defined(_WIN64)
 bool torch_init();
-#else
-static inline bool torch_init() { return true; }
-#endif
 
 typedef struct {
     uint64_t high;
