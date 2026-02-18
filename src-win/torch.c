@@ -1,5 +1,7 @@
 #include "plat.h"
 
+#include <windows.h>
+
 bool torch_init() {
     // 1. Get a handle to the already-loaded DLL
     // PyTorch on Windows uses 'c10_cuda.dll' instead of 'libc10_cuda.so'
