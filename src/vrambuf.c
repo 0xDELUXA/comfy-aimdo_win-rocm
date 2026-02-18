@@ -25,7 +25,6 @@ SHARED_EXPORT
 bool vrambuf_grow(void *arg, size_t required_size) {
     VramBuffer *buf = (VramBuffer *)arg;
     size_t grow_to;
-    size_t deficit;
     CUmemGenericAllocationHandle handle;
     CUresult err;
 
@@ -44,28 +43,31 @@ bool vrambuf_grow(void *arg, size_t required_size) {
         grow_to = buf->max_size;
     }
 
-    deficit = wddm_budget_deficit(buf->device, grow_to - buf->allocated);
-    if (deficit && empty_cache) {
-        empty_cache();
-    }
     vbars_free(wddm_budget_deficit(buf->device, grow_to - buf->allocated));
     while (buf->allocated < grow_to) {
         size_t to_allocate = grow_to - buf->allocated;
         if (to_allocate > VRAM_CHUNK_SIZE) {
             to_allocate = VRAM_CHUNK_SIZE;
         }
-        if ((err = three_stooges(buf->base_ptr + buf->allocated, to_allocate, buf->device, &handle)) != CUDA_SUCCESS) {
-            if (err != CUDA_ERROR_OUT_OF_MEMORY) {
-                log(ERROR, "VRAM Allocation failed (non OOM)\n");
-                return false;
-            }
-            log(DEBUG, "Pytorch allocator attempt exceeds available VRAM ...\n");
+
+        err = three_stooges(buf->base_ptr + buf->allocated, to_allocate, buf->device, &handle);
+
+        if (err == CUDA_ERROR_OUT_OF_MEMORY) {
+            log(DEBUG, "Pytorch allocator attempt exceeds available VRAM - Freeing VBARs ...\n");
             vbars_free(VRAM_CHUNK_SIZE);
-            if ((err = three_stooges(buf->base_ptr + buf->allocated, to_allocate, buf->device, &handle)) != CUDA_SUCCESS) {
-                bool is_oom = err == CUDA_ERROR_OUT_OF_MEMORY;
-                log(is_oom ? INFO : ERROR, "VRAM Allocation failed (%s)\n", is_oom ? "OOM" : "error");
-                return false;
-            }
+            err = three_stooges(buf->base_ptr + buf->allocated, to_allocate, buf->device, &handle);
+        }
+
+        if (err == CUDA_ERROR_OUT_OF_MEMORY && empty_cache) {
+            log(DEBUG, "Pytorch allocator attempt still exceeds available VRAM - clearing cache ...\n");
+            empty_cache();
+            err = three_stooges(buf->base_ptr + buf->allocated, to_allocate, buf->device, &handle);
+        }
+
+        if (err != CUDA_SUCCESS) {
+            bool is_oom = err == CUDA_ERROR_OUT_OF_MEMORY;
+            log(is_oom ? INFO : ERROR, "VRAM Allocation failed (%s)\n", is_oom ? "OOM" : "error");
+            return false;
         }
 
         buf->handles[buf->handle_count++] = handle;

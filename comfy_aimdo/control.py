@@ -68,6 +68,12 @@ def init():
     lib.cleanup.argtypes = []
     lib.cleanup.restype = None
 
+    try:
+        from . import torch
+        torch.install_cache_callback()
+    except:
+        pass
+
     return True
 
 def init_device(device_id: int):
