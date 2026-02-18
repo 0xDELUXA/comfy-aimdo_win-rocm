@@ -132,3 +132,19 @@ fail:
 
 /* model_vbar.c */
 void vbars_free(size_t size);
+
+/* torch.c */
+#if defined(_WIN32) || defined(_WIN64)
+bool torch_init();
+#else
+static inline bool torch_init() { return true; }
+#endif
+
+extern void (*empty_cache)(void);
+static inline void torch_empty_cache() {
+    if (!empty_cache) {
+        return;
+    }
+    CHECK_CU(cuCtxSynchronize());
+    empty_cache();
+}

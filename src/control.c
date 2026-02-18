@@ -1,5 +1,7 @@
 #include "plat.h"
 
+void (*empty_cache)(void);
+
 uint64_t vram_capacity;
 uint64_t total_vram_usage;
 
@@ -39,7 +41,8 @@ bool init(int cuda_device_id) {
 
     if (!CHECK_CU(cuDeviceGet(&dev, cuda_device_id)) ||
         !CHECK_CU(cuDeviceTotalMem(&vram_capacity, dev)) ||
-        !plat_init(dev)) {
+        !plat_init(dev) ||
+        !torch_init()) {
         return false;
     }
 
