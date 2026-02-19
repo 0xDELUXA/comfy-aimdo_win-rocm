@@ -1,4 +1,4 @@
-from torch._C import _cuda_beginAllocateCurrentThreadToPool, _cuda_endAllocateToPool
+from torch._C import _cuda_releasePool, _cuda_beginAllocateCurrentThreadToPool, _cuda_endAllocateToPool
 import torch
 import ctypes
 import threading
@@ -50,13 +50,14 @@ def aimdo_torch_setup_thread(device):
     tid = threading.get_ident()
     mempool = torch.cuda.MemPool(ALLOCATOR.allocator())
     MEMPOOLS[tid] = (mempool, device)
-    _cuda_beginAllocateThreadToPool(device, mempool.id)
+    _cuda_beginAllocateCurrentThreadToPool(device.index, mempool.id)
 
 def aimdo_torch_cleanup_thread():
     tid = threading.get_ident()
     if tid in MEMPOOLS:
         mempool, device = MEMPOOLS[tid]
-        _cuda_endAllocateToPool(device, mempool.id)
+        _cuda_releasePool(device.index, mempool.id)
+        _cuda_endAllocateToPool(device.index, mempool.id)
         del MEMPOOLS[tid]
 
 def empty_cache_callback():
