@@ -1,6 +1,7 @@
-from torch._C import _cuda_releasePool, _cuda_beginAllocateCurrentThreadToPool, _cuda_endAllocateToPool
+from torch._C import _cuda_beginAllocateCurrentThreadToPool, _cuda_endAllocateToPool
 import torch
 import ctypes
+import threading
 
 from . import control
 
@@ -26,8 +27,6 @@ def aimdo_to_tensor(alloc, device):
     _, ptr, size = alloc
     return get_tensor_from_raw_ptr(ptr, size, device)
 
-ALLOCATOR = None
-
 #pytorch doesnt have an API for a CUDAPluggableAllocator from an already loaded
 #library. Rather than force a second load that pytorch owns, construct these
 #pytorch internals outselves as sperate CDLL loads is far too risky.
@@ -40,29 +39,25 @@ class CUDAPluggableAllocator(torch.cuda.memory.CUDAPluggableAllocator):
         assert free_fn is not None
         self._allocator = torch._C._cuda_customAllocator(alloc_fn, free_fn)
 
-MEMPOOL_PURGATORY = []
+ALLOCATOR = None
+MEMPOOLS = {}
 
 def aimdo_torch_setup_thread(device):
     global ALLOCATOR
     if ALLOCATOR is None:
         ALLOCATOR = CUDAPluggableAllocator()
+
+    tid = threading.get_ident()
     mempool = torch.cuda.MemPool(ALLOCATOR.allocator())
-    #We manually reduce the ref count of the pool to 0 below to get
-    #cache emptying working. If we try and destruct later though,
-    #~MemPool asserts against this, while also asserting against
-    #any attempts to increase the ref-count from 0, so we simply have to
-    #leak the actual MemPool. Might need to sigaction() on process exit to
-    #just discard the destructor sigabrt for cleanliness.
-    MEMPOOL_PURGATORY.append(mempool)
-    midx = mempool.id
-    _cuda_beginAllocateCurrentThreadToPool(0, midx)
-    dummy = torch.empty(1, device=device) #Strong refs the real pool object
-    _cuda_releasePool(0, midx) #one for the allocation context
-    _cuda_releasePool(0, midx) #one for the pool itself
-    return dummy
+    MEMPOOLS[tid] = (mempool, device)
+    _cuda_beginAllocateThreadToPool(device, mempool.id)
 
 def aimdo_torch_cleanup_thread():
-    pass
+    tid = threading.get_ident()
+    if tid in MEMPOOLS:
+        mempool, device = MEMPOOLS[tid]
+        _cuda_endAllocateToPool(device, mempool.id)
+        del MEMPOOLS[tid]
 
 def empty_cache_callback():
     #Bail on the aimdo allocator. It can't do anything anymore as there
