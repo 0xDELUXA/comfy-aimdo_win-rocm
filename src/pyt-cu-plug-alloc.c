@@ -12,6 +12,31 @@ static inline unsigned int vmm_hash(CUdeviceptr ptr) {
     return ((uintptr_t)(void *)ptr >> MIN_ALLOC_SHIFT) % VMM_HASH_SIZE;
 }
 
+void allocations_analyze() {
+    size_t total_size = 0;
+    int count = 0;
+
+    log(DEBUG, "--- Allocation Analysis Start ---\n");
+
+    for (int i = 0; i < VMM_HASH_SIZE; i++) {
+        VramBuffer *entry = vmm_table[i];
+        while (entry) {
+            void* ptr = (void*)vrambuf_get(entry);
+            size_t s = entry->allocated;
+
+            log(DEBUG, "  [Bucket %4d] Ptr: %p | Size: %7zuk\n",
+                i, ptr, s / K);
+
+            total_size += s;
+            count++;
+
+            entry = entry->next;
+        }
+    }
+
+    log(DEBUG, "%d Active Allocations for a total of %7zu MB\n", count, total_size / M);
+}
+
 SHARED_EXPORT
 void *alloc_fn(size_t size, int device, cudaStream_t stream) {
     CUresult err;
