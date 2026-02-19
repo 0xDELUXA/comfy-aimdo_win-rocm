@@ -132,3 +132,11 @@ fail:
 
 /* model_vbar.c */
 void vbars_free(size_t size);
+void vbars_analyze();
+
+/* pyt-cu-alloc.c */
+void allocations_analyze();
+
+/* control.c */
+SHARED_EXPORT
+void aimdo_analyze();

@@ -46,6 +46,7 @@ def init():
 def init_device(device_id: int):
     if lib is None:
         return False
+
     return lib.init(device_id)
 
 def deinit():
@@ -63,6 +64,11 @@ def set_log_info(): lib.set_log_level_info()
 def set_log_debug(): lib.set_log_level_debug()
 def set_log_verbose(): lib.set_log_level_verbose()
 def set_log_vverbose(): lib.set_log_level_vverbose()
+
+def analyze():
+    if lib is None:
+        return
+    lib.aimdo_analyze()
 
 def get_total_vram_usage():
     return 0 if lib is None else lib.get_total_vram_usage()
