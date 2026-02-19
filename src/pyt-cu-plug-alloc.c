@@ -59,7 +59,7 @@ void *alloc_fn(size_t size, int device, cudaStream_t stream) {
     }
     if (!vrambuf_grow(entry, size)) {
         vrambuf_destroy(entry);
-        log(DEBUG, "%s: Dumping stats at time of OOM\n");
+        log(DEBUG, "%s: Dumping stats at time of OOM\n", __func__);
         aimdo_analyze();
         return NULL;
     }
