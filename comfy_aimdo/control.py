@@ -41,17 +41,19 @@ def init():
     lib.init.argtypes = [ctypes.c_int]
     lib.init.restype = ctypes.c_bool
 
+    return True
+
+def init_device(device_id: int):
+    if lib is None:
+        return False
+
+    #do this late to avoid running foul of ComfyUI rules on early import torch
     try:
         from . import torch
         torch.install_cache_callback()
     except:
         pass
 
-    return True
-
-def init_device(device_id: int):
-    if lib is None:
-        return False
     return lib.init(device_id)
 
 def deinit():
