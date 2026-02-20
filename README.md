@@ -91,4 +91,6 @@ cd comfy-aimdo_win-rocm
    - After install, you must manually copy `amdhip64_7.dll` from your ROCm SDK into your venv - the script will tell you exactly where
 8. After completion, `comfy-aimdo` should work on Windows ROCm.
 
-Tested on Windows 11 with the latest version of TheRock ROCm/PyTorch and an RDNA4 GPU.
+Tested on Windows 11 with the latest version of TheRock ROCm (7.12.0a20260218), PyTorch (2.12.0a0+rocm7.12.0a20260218) and an RDNA4 GPU (AMD Radeon RX 9060 XT) in latest ComfyUI (v0.14.2), launched with the `--fast` flag.
+
+*This is experimental and may not function as expected.*
