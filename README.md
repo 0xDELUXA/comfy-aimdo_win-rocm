@@ -79,7 +79,7 @@ cd comfy-aimdo_win-rocm
 ```powershell
 .\build-rocm-windows.bat
 ```
-7. The script will automatically compile `aimdo.dll` and modify the necessary files to be compatible with Windows ROCm. During the process, it will prompt you for the locations of the ROCm SDK core and CUDA toolkit. One additional manual step is required, which is explained at the end of the script.
+7. The script will automatically compile `aimdo.dll` and modify the necessary files to be compatible with Windows ROCm. During the process, it will prompt you for the locations of the ROCm SDK core and CUDA toolkit. To install the built files, run `pip install .`. One additional manual step is required, which is explained at the end of the script.
 8. After completion, `comfy-aimdo` should work on Windows ROCm.
 
 Tested on Windows 11 with the latest version of TheRock ROCm/PyTorch and an RDNA4 GPU.
