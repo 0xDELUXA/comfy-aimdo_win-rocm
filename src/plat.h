@@ -42,8 +42,11 @@ size_t wddm_budget_deficit(int device, size_t bytes);
 
 #define SHARED_EXPORT
 
+/* On Linux we are the apparent implementation of cudart */
 #define cudaMalloc aimdo_cuda_malloc
 #define cudaFree aimdo_cuda_free
+#define cudaMallocAsync aimdo_cuda_malloc_async
+#define cudaFreeAsync aimdo_cuda_free_async
 
 static inline bool plat_init(CUdevice dev) { return true; }
 static inline void plat_cleanup() {}
@@ -158,6 +161,13 @@ void vbars_analyze();
 /* pyt-cu-alloc.c */
 int WINAPI aimdo_cuda_malloc(void **dev_ptr, size_t size);
 int WINAPI aimdo_cuda_free(void *dev_ptr);
+
+extern int (WINAPI *true_cuda_malloc_async)(void** devPtr, size_t size, void* hStream);
+extern int (WINAPI *true_cuda_free_async)(void* devPtr, void* hStream);
+
+int WINAPI aimdo_cuda_malloc_async(void** devPtr, size_t size, void* hStream);
+int WINAPI aimdo_cuda_free_async(void* devPtr, void* hStream);
+
 void allocations_analyze();
 
 /* control.c */

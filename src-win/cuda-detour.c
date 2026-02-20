@@ -4,8 +4,21 @@
 
 #define TARGET_DLL "cudart64_12.dll"
 
-int (WINAPI *true_cuda_malloc)(void**, size_t) = NULL;
-int (WINAPI *true_cuda_free)(void*) = NULL;
+static int (WINAPI *true_cuda_malloc)(void**, size_t) = NULL;
+static int (WINAPI *true_cuda_free)(void*) = NULL;
+
+typedef struct {
+    void **true_ptr;
+    void *hook_ptr;
+    const char *name;
+} HookEntry;
+
+static const HookEntry hooks[] = {
+    { (void**)&true_cuda_malloc,       aimdo_cuda_malloc,       "cudaMalloc"       },
+    { (void**)&true_cuda_free,         aimdo_cuda_free,         "cudaFree"         },
+    { (void**)&true_cuda_malloc_async, aimdo_cuda_malloc_async, "cudaMallocAsync"  },
+    { (void**)&true_cuda_free_async,   aimdo_cuda_free_async,   "cudaFreeAsync"    },
+};
 
 bool aimdo_setup_hooks() {
     HMODULE h_real_cuda;
@@ -21,28 +34,17 @@ bool aimdo_setup_hooks() {
         return false;
     }
 
-    true_cuda_malloc = (int (WINAPI *)(void**, size_t))GetProcAddress(h_real_cuda, "cudaMalloc");
-    true_cuda_free = (int (WINAPI *)(void*))GetProcAddress(h_real_cuda, "cudaFree");
-
-    if (true_cuda_malloc == NULL || true_cuda_free == NULL) {
-        log(ERROR, "%s: Failed to resolve exports. Malloc: %p, Free: %p",
-            __func__, (void*)true_cuda_malloc, (void*)true_cuda_free);
-        return false;
-    }
-
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
 
-    if (DetourAttach((PVOID*)&true_cuda_malloc, aimdo_cuda_malloc) != 0) {
-        log(ERROR, "%s: DetourAttach failed for cudaMalloc", __func__);
-        DetourTransactionAbort();
-        return false;
-    }
-
-    if (DetourAttach((PVOID*)&true_cuda_free, aimdo_cuda_free) != 0) {
-        log(ERROR, "%s: DetourAttach failed for cudaFree", __func__);
-        DetourTransactionAbort();
-        return false;
+    for (int i = 0; i < sizeof(hooks)/sizeof(hooks[0]); i++) {
+        *hooks[i].true_ptr = (void*)GetProcAddress(h_real_cuda, hooks[i].name);
+        if (!*hooks[i].true_ptr ||
+            DetourAttach(hooks[i].true_ptr, hooks[i].hook_ptr) != 0) {
+            log(ERROR, "%s: Hook %s failed %p", __func__, hooks[i].name, *hooks[i].true_ptr);
+            DetourTransactionAbort();
+            return false;
+        }
     }
 
     status = (int)DetourTransactionCommit();
@@ -61,8 +63,12 @@ void aimdo_teardown_hooks() {
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
 
-    DetourDetach((PVOID*)&true_cuda_malloc, aimdo_cuda_malloc);
-    DetourDetach((PVOID*)&true_cuda_free, aimdo_cuda_free);
+    for (int i = 0; i < sizeof(hooks) / sizeof(hooks[0]); i++) {
+        /* Only detach if we actually successfully resolved the pointer */
+        if (*hooks[i].true_ptr) {
+            DetourDetach(hooks[i].true_ptr, hooks[i].hook_ptr);
+        }
+    }
 
     status = (int)DetourTransactionCommit();
     if (status != 0) {
