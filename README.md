@@ -58,19 +58,26 @@ see examples/example.py
 
 This fork adds a Windows batch script to build `comfy-aimdo` with ROCm support.
 
+### Prerequisites
+
+- VS 2022
+- ROCm (TheRock) SDK
+- CUDA toolkit (for hipify)
+- Git
+
 ### Build and Install
 
-1. Open PowerShell.
-2. Activate your ComfyUI virtual environment.
-3. Navigate to the folder where you want to clone this repository.
+1. Open PowerShell or Command Prompt.
+2. Navigate to the folder where you want to clone this repository.
 For example:
 ```powershell
 cd C:/
 ```
-4. Clone this repo:
+3. Clone this repo:
 ```powershell
 git clone https://github.com/0xDELUXA/comfy-aimdo_win-rocm
 ```
+4. Activate your ComfyUI virtual environment.
 5. Navigate to the repo directory:
 ```powershell
 cd comfy-aimdo_win-rocm
@@ -79,7 +86,9 @@ cd comfy-aimdo_win-rocm
 ```powershell
 .\build-rocm-windows.bat
 ```
-7. The script will automatically compile `aimdo.dll` and modify the necessary files to be compatible with Windows ROCm. During the process, it will prompt you for the locations of the ROCm SDK core and CUDA toolkit. To install the built files, run `pip install .`. One additional manual step is required, which is explained at the end of the script.
+7. - The script will automatically compile `aimdo.dll` and modify the necessary files to be compatible with Windows ROCm. During the process, it will prompt you for the locations of the ROCm SDK core and CUDA toolkit.
+   - To install the built files, run `pip install .`.
+   - After install, you must manually copy `amdhip64_7.dll` from your ROCm SDK into your venv - the script will tell you exactly where.
 8. After completion, `comfy-aimdo` should work on Windows ROCm.
 
 Tested on Windows 11 with the latest version of TheRock ROCm/PyTorch and an RDNA4 GPU.
