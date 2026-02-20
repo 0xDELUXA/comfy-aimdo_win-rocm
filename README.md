@@ -53,3 +53,22 @@ see examples/example.py
 ## Caveats:
 
 * There is no real way for this allocator to tell the difference between high usage and bad fragmentation in the pytorch caching allocator. As we always return success to the pytorch caching allocator it experiences no pressure while weights are being offloaded which means it can run in an extremely fragmented mode. The assumption is model weight access patterns are reasonably regular over blocks or iterations and it finds a good set of sizes to cache. What you should generally do though, is completely flush the pytorch caching allocator before each new model run, which avoids completely un-used reservations from taking priority over the next models weights.
+
+## Experimental Windows ROCm support
+
+This fork adds a Windows batch script to build `comfy-aimdo` with ROCm support.
+
+### Build and Install
+
+1. Open PowerShell or Command Prompt.
+2. Activate you virtual environment.
+3. Navigate to the repo directory:
+```powershell
+cd path\to\comfy-aimdo_win-rocm
+```
+4. Run the batch script:
+```powershell
+build_windows_rocm.bat
+```
+5. The script will automatically compile `aimdo.dll` and modify the necessary files to be compatible with Windows ROCm. During the process, it will prompt you for the locations of the ROCm SDK core and CUDA toolkit. One additional manual step is required, which is explained at the end of the script.
+6. After completion, `comfy-aimdo` should work on Windows ROCm.
