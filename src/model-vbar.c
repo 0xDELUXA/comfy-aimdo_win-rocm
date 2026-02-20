@@ -104,6 +104,7 @@ static inline bool mod1(ModelVBAR *mv, size_t page_nr, bool do_free, bool do_unp
 
 void vbars_free(size_t size) {
     size_t pages_needed = VBAR_GET_PAGE_NR_UP(size);
+    bool dirty = false;
 
     one_time_setup();
     vbars_dirty = true;
@@ -119,8 +120,12 @@ void vbars_free(size_t size) {
         for (;pages_needed && i->watermark > i->watermark_limit; i->watermark--) {
             if (mod1(i, i->watermark - 1, true, false)) {
                 pages_needed--;
+                dirty = true;
             }
         }
+    }
+    if (dirty) {
+        CHECK_CU(cuCtxSynchronize());
     }
 }
 
