@@ -36,10 +36,10 @@ size_t wddm_budget_deficit(int device, size_t bytes);
 #define SHARED_EXPORT
 
 /* On Linux we are the apparent implementation of cudart */
-#define cudaMalloc aimdo_cuda_malloc
-#define cudaFree aimdo_cuda_free
-#define cudaMallocAsync aimdo_cuda_malloc_async
-#define cudaFreeAsync aimdo_cuda_free_async
+#define aimdo_cuda_malloc cudaMalloc
+#define aimdo_cuda_free cudaFree
+#define aimdo_cuda_malloc_async cudaMallocAsync
+#define aimdo_cuda_free_async cudaFreeAsync
 
 static inline bool aimdo_wddm_init(CUdevice dev) { return true; }
 static inline void aimdo_wddm_cleanup() {}
