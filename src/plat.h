@@ -1,8 +1,14 @@
 #pragma once
 
 #include <cuda.h>
-#include <cuda_runtime_api.h>
 
+/* NOTE: cuda_runtime.h is banned here. Always use the driver APIs.
+ * Add duck-types here.
+ */
+
+typedef struct CUstream_st *cudaStream_t;
+
+#include <string.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <stdint.h>
