@@ -61,10 +61,14 @@ This fork adds a Windows batch script to build `comfy-aimdo` with ROCm support.
 ### Build and Install
 
 1. Open PowerShell or Command Prompt.
-2. Activate you virtual environment.
+2. Activate your ComfyUI virtual environment.
+3. Clone this repo:
+```powershell
+git clone https://github.com/0xDELUXA/comfy-aimdo_win-rocm
+```
 3. Navigate to the repo directory:
 ```powershell
-cd path\to\comfy-aimdo_win-rocm
+cd comfy-aimdo_win-rocm
 ```
 4. Run the batch script:
 ```powershell
