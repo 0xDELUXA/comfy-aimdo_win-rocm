@@ -77,7 +77,7 @@ cd comfy-aimdo_win-rocm
 ```
 6. Run the batch script:
 ```powershell
-build_rocm_windows.bat
+build-rocm-windows.bat
 ```
 7. The script will automatically compile `aimdo.dll` and modify the necessary files to be compatible with Windows ROCm. During the process, it will prompt you for the locations of the ROCm SDK core and CUDA toolkit. One additional manual step is required, which is explained at the end of the script.
 8. After completion, `comfy-aimdo` should work on Windows ROCm.
