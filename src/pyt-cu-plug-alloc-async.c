@@ -24,7 +24,7 @@ int WINAPI aimdo_cuda_malloc_async(void **devPtr, size_t size, void *hStream) {
     int device;
     int status;
 
-    log(VERBOSE, "%s (start) size=%zuk stream=%p\n", __func__, size / K, hStream);
+    log(VVERBOSE, "%s (start) size=%zuk stream=%p\n", __func__, size / K, hStream);
     CHECK_CU(cuCtxGetDevice(&device));
     vbars_free(wddm_budget_deficit(device, size));
 
@@ -54,7 +54,7 @@ int WINAPI aimdo_cuda_malloc_async(void **devPtr, size_t size, void *hStream) {
     }
 
 
-    log(VERBOSE, "%s (return): ptr=%p\n", __func__, *devPtr);
+    log(VVERBOSE, "%s (return): ptr=%p\n", __func__, *devPtr);
     return 0;
 }
 
@@ -64,8 +64,7 @@ int WINAPI aimdo_cuda_free_async(void *devPtr, void *hStream) {
     unsigned int h;
     int status;
 
-    log_shot(DEBUG, "Pytorch is freeing VRAM ...\n");
-    log(VERBOSE, "%s (start) ptr=%p\n", __func__, devPtr);
+    log(VVERBOSE, "%s (start) ptr=%p\n", __func__, devPtr);
 
     if (!devPtr) {
         return 0;
@@ -79,7 +78,7 @@ int WINAPI aimdo_cuda_free_async(void *devPtr, void *hStream) {
         if (entry->ptr == devPtr) {
             *prev = entry->next;
 
-            log(VERBOSE, "Freed: ptr=%p, size=%zuk, stream=%p\n", devPtr, entry->size / K, hStream);
+            log(VVERBOSE, "Freed: ptr=%p, size=%zuk, stream=%p\n", devPtr, entry->size / K, hStream);
             status = true_cuda_free_async(devPtr, hStream);
             if (status == 0) {
                 total_vram_usage -= ALIGN_UP(entry->size);
