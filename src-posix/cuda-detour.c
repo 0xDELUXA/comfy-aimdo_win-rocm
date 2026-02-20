@@ -18,17 +18,32 @@ static void dump_all_process_libs() {
     log(DEBUG, "--- End of Library Dump ---\n");
 }
 
+static int find_cudart_callback(struct dl_phdr_info *info, size_t size, void *data) {
+    if (strstr(info->dlpi_name, "libcudart")) {
+        void* handle = dlopen(info->dlpi_name, RTLD_LAZY | RTLD_NOLOAD);
+        if (handle) {
+            true_cuda_malloc_async = dlsym(handle, "cudaMallocAsync");
+            true_cuda_free_async = dlsym(handle, "cudaFreeAsync");
+            dlclose(handle);
+
+            if (true_cuda_malloc_async && true_cuda_free_async) {
+                log(DEBUG, "aimdo: Cudart symbols resolved from %s\n", info->dlpi_name);
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 bool aimdo_setup_hooks() {
-    true_cuda_malloc_async = dlsym(RTLD_NEXT, "cudaMallocAsync");
-    true_cuda_free_async = dlsym(RTLD_NEXT, "cudaFreeAsync");
+    dl_iterate_phdr(find_cudart_callback, NULL);
 
     if (!true_cuda_malloc_async || !true_cuda_free_async) {
-        log(ERROR, "%s: Failed to find real cudaAsync symbols: %s\n", __func__, dlerror());
+        log(ERROR, "%s: Failed to locate libcudart symbols in process memory.\n", __func__);
         dump_all_process_libs();
         return false;
     }
 
-    log(DEBUG, "%s: Linux async symbols resolved\n", __func__);
     return true;
 }
 
