@@ -24,7 +24,7 @@ int aimdo_cuda_malloc_async(void **devPtr, size_t size, void *hStream) {
     int device;
     int status;
 
-    log(VVERBOSE, "%s (start) size=%zuk stream=%p\n", __func__, size / K, hStream);
+    //log(VVERBOSE, "%s (start) size=%zuk stream=%p\n", __func__, size / K, hStream);
     CHECK_CU(cuCtxGetDevice(&device));
     vbars_free(wddm_budget_deficit(device, size));
 
