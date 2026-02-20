@@ -1,7 +1,7 @@
 #include "plat.h"
 
-int (WINAPI *true_cuda_malloc_async)(void **devPtr, size_t size, void *hStream);
-int (WINAPI *true_cuda_free_async)(void *devPtr, void *hStream);
+int (*true_cuda_malloc_async)(void **devPtr, size_t size, void *hStream);
+int (*true_cuda_free_async)(void *devPtr, void *hStream);
 
 #define CUDA_PAGE_SIZE (2 << 20)
 #define ALIGN_UP(s) (((s) + CUDA_PAGE_SIZE - 1) & ~(CUDA_PAGE_SIZE - 1))
@@ -20,7 +20,7 @@ static inline unsigned int size_hash(void *ptr) {
 }
 
 
-int WINAPI aimdo_cuda_malloc_async(void **devPtr, size_t size, void *hStream) {
+int aimdo_cuda_malloc_async(void **devPtr, size_t size, void *hStream) {
     int device;
     int status;
 
@@ -58,7 +58,7 @@ int WINAPI aimdo_cuda_malloc_async(void **devPtr, size_t size, void *hStream) {
     return 0;
 }
 
-int WINAPI aimdo_cuda_free_async(void *devPtr, void *hStream) {
+int aimdo_cuda_free_async(void *devPtr, void *hStream) {
     SizeEntry *entry;
     SizeEntry **prev;
     unsigned int h;

@@ -161,21 +161,15 @@ fail:
 void vbars_free(size_t size);
 void vbars_analyze();
 
-#if defined(_WIN32) || defined(_WIN64)
-#include <windows.h>
-#else
-#define WINAPI
-#endif
-
 /* pyt-cu-alloc.c */
-int WINAPI aimdo_cuda_malloc(void **dev_ptr, size_t size);
-int WINAPI aimdo_cuda_free(void *dev_ptr);
+int aimdo_cuda_malloc(void **dev_ptr, size_t size);
+int aimdo_cuda_free(void *dev_ptr);
 
-extern int (WINAPI *true_cuda_malloc_async)(void** devPtr, size_t size, void* hStream);
-extern int (WINAPI *true_cuda_free_async)(void* devPtr, void* hStream);
+extern int (*true_cuda_malloc_async)(void** devPtr, size_t size, void* hStream);
+extern int (*true_cuda_free_async)(void* devPtr, void* hStream);
 
-int WINAPI aimdo_cuda_malloc_async(void** devPtr, size_t size, void* hStream);
-int WINAPI aimdo_cuda_free_async(void* devPtr, void* hStream);
+int aimdo_cuda_malloc_async(void** devPtr, size_t size, void* hStream);
+int aimdo_cuda_free_async(void* devPtr, void* hStream);
 
 void allocations_analyze();
 

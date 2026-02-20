@@ -4,8 +4,8 @@
 
 #define TARGET_DLL "cudart64_12.dll"
 
-static int (WINAPI *true_cuda_malloc)(void**, size_t) = NULL;
-static int (WINAPI *true_cuda_free)(void*) = NULL;
+static int (*true_cuda_malloc)(void**, size_t) = NULL;
+static int (*true_cuda_free)(void*) = NULL;
 
 typedef struct {
     void **true_ptr;
