@@ -13,6 +13,10 @@
 /* control.c */
 size_t cuda_budget_deficit(int device, size_t bytes);
 
+/* cuda-detour.c */
+bool aimdo_setup_hooks();
+void aimdo_teardown_hooks();
+
 #if defined(_WIN32) || defined(_WIN64)
 
 #define SHARED_EXPORT __declspec(dllexport)
@@ -24,18 +28,7 @@ typedef SSIZE_T ssize_t;
 /* shmem-detect.c */
 bool aimdo_wddm_init(CUdevice dev);
 void aimdo_wddm_cleanup();
-/* cuda-detour.c */
-bool aimdo_setup_hooks();
-void aimdo_teardown_hooks();
 
-static inline bool plat_init(CUdevice dev) {
-    return aimdo_wddm_init(dev) &&
-           aimdo_setup_hooks();
-}
-static inline void plat_cleanup() {
-    aimdo_wddm_cleanup();
-    aimdo_teardown_hooks();
-}
 size_t wddm_budget_deficit(int device, size_t bytes);
 
 #else
@@ -48,13 +41,23 @@ size_t wddm_budget_deficit(int device, size_t bytes);
 #define cudaMallocAsync aimdo_cuda_malloc_async
 #define cudaFreeAsync aimdo_cuda_free_async
 
-static inline bool plat_init(CUdevice dev) { return true; }
-static inline void plat_cleanup() {}
+static inline bool aimdo_wddm_init(CUdevice dev) { return true; }
+static inline void aimdo_wddm_cleanup() {}
+
 static inline size_t wddm_budget_deficit(int device, size_t bytes) {
     return cuda_budget_deficit(device, bytes);
 }
 
 #endif
+
+static inline bool plat_init(CUdevice dev) {
+    return aimdo_wddm_init(dev) &&
+           aimdo_setup_hooks();
+}
+static inline void plat_cleanup() {
+    aimdo_wddm_cleanup();
+    aimdo_teardown_hooks();
+}
 
 typedef unsigned long long ull;
 #define K 1024
