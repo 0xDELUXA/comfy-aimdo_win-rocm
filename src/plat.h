@@ -22,13 +22,28 @@ size_t cuda_budget_deficit(int device, size_t bytes);
 typedef SSIZE_T ssize_t;
 
 /* shmem-detect.c */
-bool plat_init(CUdevice dev);
-void plat_cleanup();
+bool aimdo_wddm_init(CUdevice dev);
+void aimdo_wddm_cleanup();
+/* cuda-detour.c */
+bool aimdo_setup_hooks();
+void aimdo_teardown_hooks();
+
+static inline bool plat_init(CUdevice dev) {
+    return aimdo_wddm_init(dev) &&
+           aimdo_setup_hooks();
+}
+static inline void plat_cleanup() {
+    aimdo_wddm_cleanup();
+    aimdo_teardown_hooks();
+}
 size_t wddm_budget_deficit(int device, size_t bytes);
 
 #else
 
 #define SHARED_EXPORT
+
+#define cudaMalloc aimdo_cuda_malloc
+#define cudaFree aimdo_cuda_free
 
 static inline bool plat_init(CUdevice dev) { return true; }
 static inline void plat_cleanup() {}
@@ -134,7 +149,15 @@ fail:
 void vbars_free(size_t size);
 void vbars_analyze();
 
+#if defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+#else
+#define WINAPI
+#endif
+
 /* pyt-cu-alloc.c */
+int WINAPI aimdo_cuda_malloc(void **dev_ptr, size_t size);
+int WINAPI aimdo_cuda_free(void *dev_ptr);
 void allocations_analyze();
 
 /* control.c */
