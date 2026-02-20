@@ -62,19 +62,24 @@ This fork adds a Windows batch script to build `comfy-aimdo` with ROCm support.
 
 1. Open PowerShell or Command Prompt.
 2. Activate your ComfyUI virtual environment.
-3. Clone this repo:
+3. Navigate to the folder where you want to clone this repository.
+For example:
+```powershell
+cd C:/
+```
+4. Clone this repo:
 ```powershell
 git clone https://github.com/0xDELUXA/comfy-aimdo_win-rocm
 ```
-3. Navigate to the repo directory:
+5. Navigate to the repo directory:
 ```powershell
 cd comfy-aimdo_win-rocm
 ```
-4. Run the batch script:
+6. Run the batch script:
 ```powershell
-build_windows_rocm.bat
+build_rocm_windows.bat
 ```
-5. The script will automatically compile `aimdo.dll` and modify the necessary files to be compatible with Windows ROCm. During the process, it will prompt you for the locations of the ROCm SDK core and CUDA toolkit. One additional manual step is required, which is explained at the end of the script.
-6. After completion, `comfy-aimdo` should work on Windows ROCm.
+7. The script will automatically compile `aimdo.dll` and modify the necessary files to be compatible with Windows ROCm. During the process, it will prompt you for the locations of the ROCm SDK core and CUDA toolkit. One additional manual step is required, which is explained at the end of the script.
+8. After completion, `comfy-aimdo` should work on Windows ROCm.
 
 Tested on Windows 11 with the latest version of TheRock ROCm/PyTorch and an RDNA4 GPU.
