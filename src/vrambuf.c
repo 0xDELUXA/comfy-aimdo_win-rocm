@@ -5,6 +5,11 @@
 SHARED_EXPORT
 void *vrambuf_create(int device, size_t max_size) {
     VramBuffer *buf;
+    size_t old_size = max_size;
+    if ((max_size / VRAM_CHUNK_SIZE) * VRAM_CHUNK_SIZE < max_size) {
+        max_size = ((max_size / VRAM_CHUNK_SIZE) + 1) * VRAM_CHUNK_SIZE;
+        log(ERROR, "Fixed alignment error, %zu -> %zu\n", old_size, max_size);
+    }
 
     buf = (VramBuffer *)calloc(1, sizeof(*buf) + sizeof(CUmemGenericAllocationHandle) * max_size / VRAM_CHUNK_SIZE);
     if (!buf) {
