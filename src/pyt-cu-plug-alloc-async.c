@@ -26,7 +26,9 @@ int aimdo_cuda_malloc_async(void **devPtr, size_t size, void *hStream) {
 
     //log(VVERBOSE, "%s (start) size=%zuk stream=%p\n", __func__, size / K, hStream);
     CHECK_CU(cuCtxGetDevice(&device));
+#if 0
     vbars_free(wddm_budget_deficit(device, size));
+#endif
 
     status = true_cuda_malloc_async(devPtr, size, hStream);
 
@@ -40,6 +42,7 @@ int aimdo_cuda_malloc_async(void **devPtr, size_t size, void *hStream) {
         return status;
     }
 
+#if 0
     total_vram_usage += ALIGN_UP(size);
 
     {
@@ -52,7 +55,7 @@ int aimdo_cuda_malloc_async(void **devPtr, size_t size, void *hStream) {
             size_table[h] = entry;
         }
     }
-
+#endif
 
     log(VVERBOSE, "%s (return): ptr=%p\n", __func__, *devPtr);
     return 0;
@@ -66,6 +69,7 @@ int aimdo_cuda_free_async(void *devPtr, void *hStream) {
 
     log(VVERBOSE, "%s (start) ptr=%p\n", __func__, devPtr);
 
+#if 0
     if (!devPtr) {
         return 0;
     }
@@ -90,6 +94,7 @@ int aimdo_cuda_free_async(void *devPtr, void *hStream) {
         prev = &entry->next;
         entry = entry->next;
     }
+#endif
 
     log(ERROR, "%s: could not account free at %p\n", __func__, devPtr);
     return true_cuda_free_async(devPtr, hStream);
