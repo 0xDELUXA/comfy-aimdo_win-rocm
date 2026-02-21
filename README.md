@@ -75,7 +75,8 @@ For example:
 cd C:/
 ```
 3. Clone the upstream repo:
-(If future updates break the Windows ROCm build process, clone *this* fork instead.)
+
+(If future updates break the Windows ROCm build process, clone *this* fork instead. In that case, step 5 is not required.)
 ```powershell
 git clone https://github.com/Comfy-Org/comfy-aimdo
 ```
@@ -87,7 +88,7 @@ cd comfy-aimdo
 ```powershell
 curl -O https://raw.githubusercontent.com/0xDELUXA/comfy-aimdo_win-rocm/refs/heads/master/build-rocm-windows.bat
 ```
-6. Activate your ComfyUI virtual environment.
+6. Activate your ComfyUI virtual environment. (You may need to return to the `comfy-aimdo` directory afterwards.)
 7. Run the batch script:
 ```powershell
 .\build-rocm-windows.bat
