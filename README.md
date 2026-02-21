@@ -71,7 +71,7 @@ This fork adds a Windows batch script to build `comfy-aimdo` with ROCm support.
 1. Open PowerShell or Command Prompt.
 2. Navigate to the folder where you want to clone the repository.
 
-For example:
+   For example:
 ```powershell
 cd C:/
 ```
@@ -92,7 +92,7 @@ curl -O https://raw.githubusercontent.com/0xDELUXA/comfy-aimdo_win-rocm/refs/hea
 
 5. Activate your ComfyUI virtual environment.
 
-(If you changed directories, return to the cloned `comfy-aimdo` folder before continuing.)
+   (If you changed directories, return to the cloned `comfy-aimdo` folder before continuing.)
 
 6. Run the batch script:
 ```powershell
