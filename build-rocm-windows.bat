@@ -1,4 +1,6 @@
 @echo off
+setlocal enabledelayedexpansion
+
 REM Build script for comfy-aimdo on Windows ROCm
 REM
 REM Requirements:
@@ -14,7 +16,7 @@ echo.
 REM ---- Prompt for paths ----
 echo Enter the path to your ROCm SDK core directory.
 echo This is typically inside your venv, e.g.:
-echo   C:\venv\Lib\site-packages\_rocm_sdk_core
+echo   C:\ComfyUI\venv\Lib\site-packages\_rocm_sdk_core
 echo.
 set /p ROCM_PATH="ROCm SDK path: "
 
@@ -91,6 +93,7 @@ powershell -Command "$files = @(Get-ChildItem hip_src\*.h | ForEach-Object { $_.
 
 REM ---- Generate AMD DXGI-based cuDeviceGetLuid implementation ----
 echo Generating ROCm platform stubs...
+if exist hip_src\rocm_stubs.c del /F /Q hip_src\rocm_stubs.c
 (
 echo #include ^<hip/hip_runtime.h^>
 echo #include ^<windows.h^>
@@ -107,7 +110,7 @@ echo     hr = CreateDXGIFactory1^(^&IID_IDXGIFactory1, ^(void**^)^&factory^);
 echo     if ^(FAILED^(hr^)^) return hipErrorNotSupported;
 echo.
 echo     UINT adapterIndex = 0;
-echo     while ^(factory-^>lpVtbl-^>EnumAdapters1^(factory, adapterIndex, ^&adapter^) != DXGI_ERROR_NOT_FOUND^) {
+echo     while ^(factory-^>lpVtbl-^>EnumAdapters1^(factory, adapterIndex, ^&adapter^) == S_OK^) {
 echo         hr = adapter-^>lpVtbl-^>GetDesc1^(adapter, ^&desc^);
 echo         if ^(SUCCEEDED^(hr^) ^&^& desc.VendorId == 0x1002^) {
 echo             if ^(luid^) memcpy^(luid, ^&desc.AdapterLuid, sizeof^(LUID^)^);
@@ -133,43 +136,61 @@ set HIP_SRC_PATH=%CD%\hip_src
 if not exist comfy_aimdo mkdir comfy_aimdo
 if not exist obj mkdir obj
 
-REM Find MSVC and Windows SDK paths via vswhere
-for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set VS_PATH=%%i
-set MSVC_TOOLS=%VS_PATH%\VC\Tools\MSVC
-for /d %%i in ("%MSVC_TOOLS%\*") do set MSVC_VER_PATH=%%i
+REM ---- Visual Studio Path Prompt ----
+echo Enter the path to your Visual Studio installation directory.
+echo This is the folder containing the 'VC' folder, e.g.:
+echo   C:\Program Files\Microsoft Visual Studio\2022\Community
+echo.
+set /p VS_PATH="Visual Studio Path: "
 
-REM Common Windows SDK include path
-set WINSDK_INC=C:\Program Files (x86)\Windows Kits\10\Include
-for /d %%i in ("%WINSDK_INC%\*") do set WINSDK_VER=%%i
+if not exist "%VS_PATH%\VC\Tools\MSVC\" (
+    echo ERROR: Visual Studio path invalid or MSVC tools missing: %VS_PATH%
+    exit /b 1
+)
 
-set COMPILE_FLAGS=-D__HIP_PLATFORM_AMD__ -O3 -fms-extensions -fms-compatibility ^
-    -I"%HIP_SRC_PATH%" ^
-    -I"%HIP_INCLUDE%" ^
-    -isystem "%CLANG_RESOURCE_DIR%\include" ^
-    -isystem "%MSVC_VER_PATH%\include" ^
-    -isystem "%WINSDK_VER%\ucrt" ^
-    -isystem "%WINSDK_VER%\shared" ^
-    -isystem "%WINSDK_VER%\um"
+echo Found VS at: %VS_PATH% 
+
+REM ---- Auto-detect MSVC Version ----
+set MSVC_VER=
+for /f "delims=" %%i in ('dir /b /ad /on "%VS_PATH%\VC\Tools\MSVC\"') do set MSVC_VER=%%i
+set "MSVC_VER_PATH=%VS_PATH%\VC\Tools\MSVC\%MSVC_VER%" 
+
+REM ---- Auto-detect Windows SDK (Checking D: then C:) ----
+set "WINSDK_BASE="
+if exist "D:\Program Files (x86)\Windows Kits\10" set "WINSDK_BASE=D:\Program Files (x86)\Windows Kits\10"
+if not defined WINSDK_BASE if exist "C:\Program Files (x86)\Windows Kits\10" set "WINSDK_BASE=C:\Program Files (x86)\Windows Kits\10"
+if not defined WINSDK_BASE if exist "D:\Program Files\Windows Kits\10" set "WINSDK_BASE=D:\Program Files\Windows Kits\10"
+if not defined WINSDK_BASE if exist "C:\Program Files\Windows Kits\10" set "WINSDK_BASE=C:\Program Files\Windows Kits\10"
+
+if not defined WINSDK_BASE (
+    echo ERROR: Windows SDK 10 not found.
+    exit /b 1
+)
+
+set WINSDK_VER=
+for /f "delims=" %%i in ('dir /b /ad /on "%WINSDK_BASE%\Include\"') do set WINSDK_VER=%%i
+set "WINSDK_INC_PATH=%WINSDK_BASE%\Include\%WINSDK_VER%" [cite: 29]
+set "WINSDK_LIB_PATH=%WINSDK_BASE%\Lib\%WINSDK_VER%" [cite: 29]
+
+echo Found WinSDK at: %WINSDK_BASE% (%WINSDK_VER%) [cite: 29]
+
+set "COMPILE_FLAGS=-D__HIP_PLATFORM_AMD__ -O3 -fms-extensions -fms-compatibility -I"%HIP_SRC_PATH%" -I"%HIP_INCLUDE%" -isystem "%CLANG_RESOURCE_DIR%\include" -isystem "%MSVC_VER_PATH%\include" -isystem "%WINSDK_INC_PATH%\ucrt" -isystem "%WINSDK_INC_PATH%\shared" -isystem "%WINSDK_INC_PATH%\um""
 
 set OBJ_FILES=
 for %%f in (hip_src\*.c hip_src\win\*.c) do (
-    set OBJ=obj\%%~nf.obj
+    echo Compiling %%f...
     "%CLANG_EXE%" %COMPILE_FLAGS% -c "%%f" -o "obj\%%~nf.obj"
     if errorlevel 1 (
         echo COMPILE ERROR in %%f
         goto :buildfailed
     )
-    call set OBJ_FILES=%%OBJ_FILES%% "obj\%%~nf.obj"
+    set "OBJ_FILES=!OBJ_FILES! "obj\%%~nf.obj""
 )
 
-REM ---- Link ----
+REM ---- Linking ----
 echo.
 echo Linking...
-
-REM Find MSVC and WinSDK lib paths
-set MSVC_LIB=%MSVC_VER_PATH%\lib\x64
-set WINSDK_LIB=C:\Program Files (x86)\Windows Kits\10\Lib
-for /d %%i in ("%WINSDK_LIB%\*") do set WINSDK_VER_LIB=%%i
+set "MSVC_LIB=%MSVC_VER_PATH%\lib\x64"
 
 if exist comfy_aimdo\aimdo.dll del comfy_aimdo\aimdo.dll
 
@@ -179,8 +200,8 @@ if exist comfy_aimdo\aimdo.dll del comfy_aimdo\aimdo.dll
     -nologo ^
     "-libpath:%HIP_LIB%" ^
     "-libpath:%MSVC_LIB%" ^
-    "-libpath:%WINSDK_VER_LIB%\ucrt\x64" ^
-    "-libpath:%WINSDK_VER_LIB%\um\x64" ^
+    "-libpath:%WINSDK_LIB_PATH%\ucrt\x64" ^
+    "-libpath:%WINSDK_LIB_PATH%\um\x64" ^
     "-libpath:%CLANG_RESOURCE_DIR%\lib\windows" ^
     "%CLANG_RESOURCE_DIR%\lib\windows\clang_rt.builtins-x86_64.lib" ^
     amdhip64.lib ^
@@ -210,10 +231,11 @@ if %BUILD_RESULT% EQU 0 (
         echo.
         echo Now run: pip install .
 		echo.
-        echo After that, one manual step:
+		echo After that, one manual step:
+        for /f "tokens=*" %%i in ('python -c "import site; print(site.getsitepackages()[0])"') do set "VENV_SITE=%%i"
         echo Copy %ROCM_PATH%\bin\amdhip64_7.dll
-        echo   to your venv\Lib\site-packages\comfy_aimdo\
-        echo   Without this it may use a system-wide version or fail to
+        echo   to !VENV_SITE!\comfy_aimdo\
+        echo   Without this it may use the system-wide version or fail to
         echo   load entirely because the dependency cannot be resolved
         echo   from within the virtual environment.
         echo ============================================
