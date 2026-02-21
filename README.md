@@ -60,11 +60,11 @@ This fork adds a Windows batch script to build `comfy-aimdo` with ROCm support.
 
 ### Prerequisites
 
-- ComfyUI
 - ROCm (TheRock) SDK & PyTorch
 - Visual Studio 2022 with the Desktop development with C++ workload
 - CUDA toolkit (for hipify)
 - Git
+- ComfyUI
 
 ### Build and Install
 
@@ -100,7 +100,7 @@ curl -O https://raw.githubusercontent.com/0xDELUXA/comfy-aimdo_win-rocm/refs/hea
 ```
 
 7. - The script will automatically compile `aimdo.dll` along with `aimdo.lib` and modify the necessary files to be compatible with Windows ROCm. During the process, it will prompt you for the locations of the ROCm SDK core, CUDA Toolkit, and Visual Studio.
-   - To install the built files, run `pip install .`
+   - To install the built files, run: `pip install .`
    - After install, you must manually copy `amdhip64_7.dll` from your ROCm SDK into your venv - the script will specify the required location
 
 8. After completion, `comfy-aimdo` should work on Windows ROCm.
