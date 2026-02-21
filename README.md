@@ -75,28 +75,34 @@ For example:
 ```powershell
 cd C:/
 ```
+
 3. Clone this fork:
 ```powershell
 git clone https://github.com/0xDELUXA/comfy-aimdo_win-rocm
 ```
+
 4. Navigate to its directory:
 ```powershell
 cd comfy-aimdo_win-rocm
 ```
-- Alternatively, you can get the latest updates by cloning the upstream [repository](https://github.com/Comfy-Org/comfy-aimdo). In that case, you need to download the Windows ROCm build script into the cloned directory:
+- Alternatively, you can get the latest updates by cloning the upstream [repository](https://github.com/Comfy-Org/comfy-aimdo). In that case, you need to download the Windows ROCm build script into the cloned directory, and resolve potential conflicts:
 ```powershell
 curl -O https://raw.githubusercontent.com/0xDELUXA/comfy-aimdo_win-rocm/refs/heads/master/build-rocm-windows.bat
 ```
+
 5. Activate your ComfyUI virtual environment.
 
-  (If you changed directories, return to the cloned `comfy-aimdo` folder before continuing.)
+(If you changed directories, return to the cloned `comfy-aimdo` folder before continuing.)
+
 6. Run the batch script:
 ```powershell
 .\build-rocm-windows.bat
 ```
+
 7. - The script will automatically compile `aimdo.dll` along with `aimdo.lib` and modify the necessary files to be compatible with Windows ROCm. During the process, it will prompt you for the locations of the ROCm SDK core, CUDA Toolkit, and Visual Studio.
    - To install the built files, run `pip install .`
    - After install, you must manually copy `amdhip64_7.dll` from your ROCm SDK into your venv - the script will specify the required location
+
 8. After completion, `comfy-aimdo` should work on Windows ROCm.
 
 ### Additional notes
