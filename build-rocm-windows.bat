@@ -67,8 +67,15 @@ set CUDA_LINK=C:\cuda_temp
 if exist "%CUDA_LINK%" rmdir "%CUDA_LINK%"
 mklink /J "%CUDA_LINK%" "%CUDA_ORIG%" >nul 2>&1
 
-REM ---- Copy source files ----
+REM ---- Pre-build Cleanup & Copy ----
 if exist hip_src rmdir /S /Q hip_src
+if exist obj rmdir /S /Q obj
+if exist build rmdir /S /Q build
+if exist comfy_aimdo.egg-info rmdir /S /Q comfy_aimdo.egg-info
+if exist comfy_aimdo\_version.py del /F /Q comfy_aimdo\_version.py
+if exist comfy_aimdo\aimdo.dll del /F /Q comfy_aimdo\aimdo.dll
+if exist comfy_aimdo\aimdo.lib del /F /Q comfy_aimdo\aimdo.lib
+
 mkdir hip_src
 mkdir hip_src\win
 copy src\*.c hip_src\ >nul
@@ -172,7 +179,7 @@ for /f "delims=" %%i in ('dir /b /ad /on "%WINSDK_BASE%\Include\"') do set WINSD
 set "WINSDK_INC_PATH=%WINSDK_BASE%\Include\%WINSDK_VER%" [cite: 29]
 set "WINSDK_LIB_PATH=%WINSDK_BASE%\Lib\%WINSDK_VER%" [cite: 29]
 
-echo Found WinSDK at: %WINSDK_BASE% (%WINSDK_VER%) [cite: 29]
+echo Found WinSDK at: %WINSDK_BASE% (%WINSDK_VER%)
 
 set "COMPILE_FLAGS=-D__HIP_PLATFORM_AMD__ -O3 -fms-extensions -fms-compatibility -I"%HIP_SRC_PATH%" -I"%HIP_INCLUDE%" -isystem "%CLANG_RESOURCE_DIR%\include" -isystem "%MSVC_VER_PATH%\include" -isystem "%WINSDK_INC_PATH%\ucrt" -isystem "%WINSDK_INC_PATH%\shared" -isystem "%WINSDK_INC_PATH%\um""
 
