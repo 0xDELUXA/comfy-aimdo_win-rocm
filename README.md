@@ -75,6 +75,7 @@ For example:
 cd C:/
 ```
 3. Clone the upstream repo:
+(If future updates break the Windows ROCm build process, clone *this* fork instead.)
 ```powershell
 git clone https://github.com/Comfy-Org/comfy-aimdo
 ```
@@ -100,6 +101,7 @@ curl -O https://raw.githubusercontent.com/0xDELUXA/comfy-aimdo_win-rocm/refs/hea
 
 - The "new" `Model Initializing...` phase is quite heavy on AMD GPUs. The larger the model, the longer it takes.
 - If your ComfyUI startup console prints: `HIP Library Path: C:\WINDOWS\SYSTEM32\amdhip64_7.dll`, (at least on RDNA4 with Adrenaline 26.1.1) `comfy-aimdo` will not work at all. This is why the final manual copy step is required.
+- For some reason, `comfy-aimdo` breaks AMD Triton with the following error:   `ValueError: Pointer argument (at 0) cannot be accessed from Triton (cpu tensor?)`.  As a result, we cannot use SageAttention V1 or FlashAttention-2 - only SDPA works (for now).
 
 Tested on Windows 11 with the latest version of TheRock ROCm (`7.12.0a20260218`), PyTorch (`2.12.0a0+rocm7.12.0a20260218`) and an RDNA4 GPU (AMD Radeon RX 9060 XT) in latest ComfyUI (`v0.14.2`), launched with the `--fast` flag.
 
