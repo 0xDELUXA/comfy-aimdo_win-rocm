@@ -113,4 +113,6 @@ curl -O https://raw.githubusercontent.com/0xDELUXA/comfy-aimdo_win-rocm/refs/hea
 
 Tested on Windows 11 with the latest version of TheRock ROCm (`7.12.0a20260218`), PyTorch (`2.12.0a0+rocm7.12.0a20260218`) and an RDNA4 GPU (AMD Radeon RX 9060 XT) in latest ComfyUI (`v0.14.2`), launched with the `--fast` flag.
 
+Don't expect `comfy-aimdo` to improve much (e.g., VRAM management or average performance) on AMD compared to not using it. I just got it working by hipifying the CUDA code and adding some workarounds. It would be appreciated if an AMD developer or a community member with deeper insight could further optimize the build script.
+
 *This is experimental and may not function as expected. Even after a successful build, installation, and loading, occasional GPU hangs, out-of-memory (OOM) errors, and other runtime issues may occur on AMD hardware running Windows.*
