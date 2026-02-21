@@ -96,7 +96,7 @@ for %%f in (hip_src\*.h hip_src\*.c hip_src\win\*.h) do (
 
 REM ---- Manual type replacements (hipify misses some) ----
 echo Applying type replacements...
-powershell -Command "$files = @(Get-ChildItem hip_src\*.h | ForEach-Object { $_.FullName }) + @(Get-ChildItem hip_src\*.c | ForEach-Object { $_.FullName }) + @(Get-ChildItem hip_src\win\*.c | ForEach-Object { $_.FullName }); foreach ($file in $files) { if (-not (Test-Path $file)) { continue }; $content = Get-Content $file -Raw; $content = $content -replace '#include <cuda\.h>', '#include <hip/hip_runtime.h>'; $content = $content -replace '#include <cuda_runtime\.h>', '#include <hip/hip_runtime.h>'; $content = $content -replace '\bCUdevice\b', 'hipDevice_t'; $content = $content -replace '\bCUdeviceptr\b', 'hipDeviceptr_t'; $content = $content -replace '\bCUresult\b', 'hipError_t'; $content = $content -replace '\bCUDA_SUCCESS\b', 'hipSuccess'; $content = $content -replace '\bCUDA_ERROR_OUT_OF_MEMORY\b', 'hipErrorOutOfMemory'; $content = $content -replace '\bCUmemGenericAllocationHandle\b', 'hipMemGenericAllocationHandle_t'; $content = $content -replace '\bcudaStream_t\b', 'hipStream_t'; $content = $content -replace '\bcuMemGetInfo\b', 'hipMemGetInfo'; $content = $content -replace '\bcuDeviceGet\b', 'hipDeviceGet'; $content = $content -replace '\bcuDeviceTotalMem\b', 'hipDeviceTotalMem'; $content = $content -replace '\bcuDeviceGetName\b', 'hipDeviceGetName'; $content = $content -replace '\bcuMemUnmap\b', 'hipMemUnmap'; $content = $content -replace '\bcuMemRelease\b', 'hipMemRelease'; $content = $content -replace '\bcuMemAddressReserve\b', 'hipMemAddressReserve'; $content = $content -replace '\bcuMemAddressFree\b', 'hipMemAddressFree'; $content = $content -replace '\bcuMemCreate\b', 'hipMemCreate'; $content = $content -replace '\bcuMemSetAccess\b', 'hipMemSetAccess'; $content = $content -replace '\bcuMemMap\b', 'hipMemMap'; $content = $content -replace '\bcuCtxSynchronize\b', 'hipDeviceSynchronize'; Set-Content $file $content }" >nul
+powershell -Command "$files = @(Get-ChildItem hip_src\*.h | ForEach-Object { $_.FullName }) + @(Get-ChildItem hip_src\*.c | ForEach-Object { $_.FullName }) + @(Get-ChildItem hip_src\win\*.c | ForEach-Object { $_.FullName }); foreach ($file in $files) { if (-not (Test-Path $file)) { continue }; $content = Get-Content $file -Raw; $content = $content -replace '#include <cuda\.h>', '#include <hip/hip_runtime.h>'; $content = $content -replace '#include <cuda_runtime\.h>', '#include <hip/hip_runtime.h>'; $content = $content -replace '\bCUdevice\b', 'hipDevice_t'; $content = $content -replace '\bCUdeviceptr\b', 'hipDeviceptr_t'; $content = $content -replace '\bCUresult\b', 'hipError_t'; $content = $content -replace '\bCUDA_SUCCESS\b', 'hipSuccess'; $content = $content -replace '\bCUDA_ERROR_OUT_OF_MEMORY\b', 'hipErrorOutOfMemory'; $content = $content -replace '\bCUmemGenericAllocationHandle\b', 'hipMemGenericAllocationHandle_t'; $content = $content -replace '\bcudaStream_t\b', 'hipStream_t'; $content = $content -replace '\bcuMemGetInfo\b', 'hipMemGetInfo'; $content = $content -replace '\bcuDeviceGet\b', 'hipDeviceGet'; $content = $content -replace '\bcuDeviceTotalMem\b', 'hipDeviceTotalMem'; $content = $content -replace '\bcuDeviceGetName\b', 'hipDeviceGetName'; $content = $content -replace '\bcuMemUnmap\b', 'hipMemUnmap'; $content = $content -replace '\bcuMemRelease\b', 'hipMemRelease'; $content = $content -replace '\bcuMemAddressReserve\b', 'hipMemAddressReserve'; $content = $content -replace '\bcuMemAddressFree\b', 'hipMemAddressFree'; $content = $content -replace '\bcuMemCreate\b', 'hipMemCreate'; $content = $content -replace '\bcuMemSetAccess\b', 'hipMemSetAccess'; $content = $content -replace '\bcuMemMap\b', 'hipMemMap'; $content = $content -replace '\bcuCtxSynchronize\b', 'hipDeviceSynchronize'; $content = $content -replace '\bcuCtxGetDevice\b', 'hipGetDevice'; $content = $content -replace '\bhipCtxGetDevice\b', 'hipGetDevice'; $content = $content -replace '\bhipGetDevice\(&', 'hipGetDevice((int*)&'; $content = $content -replace '\bcuMemAllocAsync\b', 'hipMallocAsync'; $content = $content -replace '\bcuMemFreeAsync\b', 'hipFreeAsync'; $content = $content -replace '\bCUstream\b', 'hipStream_t'; $content = $content -replace 'typedef struct CUstream_st \*hipStream_t;\r?\n', ''; $content = $content -replace '\bcuGetErrorString\s*\(([^,]+),\s*&(\w+)\s*\)', '(($2 = hipGetErrorString($1)) == NULL ? hipErrorUnknown : hipSuccess)'; $content = $content -replace '\bcuGetErrorString\b', 'hipGetErrorString'; $content = $content -replace '\bCUmemAllocationProp\b', 'hipMemAllocationProp'; $content = $content -replace '\bCUmemAccessDesc\b', 'hipMemAccessDesc'; $content = $content -replace '\bCU_MEM_ALLOCATION_TYPE_PINNED\b', 'hipMemAllocationTypePinned'; $content = $content -replace '\bCU_MEM_LOCATION_TYPE_DEVICE\b', 'hipMemLocationTypeDevice'; $content = $content -replace '\bCU_MEM_ACCESS_FLAGS_PROT_READWRITE\b', 'hipMemAccessFlagsProtReadWrite'; Set-Content $file $content }" >nul
 
 REM ---- Generate AMD DXGI-based cuDeviceGetLuid implementation ----
 echo Generating ROCm platform stubs...
@@ -131,6 +131,28 @@ echo         adapterIndex++;
 echo     }
 echo     if ^(factory^) factory-^>lpVtbl-^>Release^(factory^);
 echo     return hipErrorNotSupported;
+echo }
+echo.
+echo #include ^<stdbool.h^>
+echo #include ^<stddef.h^>
+echo.
+echo /* shmem-detect.c stubs for ROCm - ROCm does not use WDDM shared memory */
+echo bool aimdo_wddm_init^(hipDevice_t dev^) {
+echo     ^(void^)dev;
+echo     return true;
+echo }
+echo void aimdo_wddm_cleanup^(^) {}
+echo.
+echo /* cuda-detour.c stubs for ROCm - no CUDA hook detours needed */
+echo bool aimdo_setup_hooks^(^) {
+echo     return true;
+echo }
+echo void aimdo_teardown_hooks^(^) {}
+echo.
+echo /* wddm_budget_deficit: on ROCm delegate to cuda_budget_deficit */
+echo size_t cuda_budget_deficit^(int device, size_t bytes^);
+echo size_t wddm_budget_deficit^(int device, size_t bytes^) {
+echo     return cuda_budget_deficit^(device, bytes^);
 echo }
 ) > hip_src\rocm_stubs.c
 
