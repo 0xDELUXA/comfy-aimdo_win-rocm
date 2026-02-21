@@ -63,40 +63,39 @@ echo Clang dir:  %CLANG_RESOURCE_DIR%
 echo.
 
 REM ---- CUDA junction (hipify needs a path without spaces) ----
-set CUDA_LINK=C:\cuda_temp
-if exist "%CUDA_LINK%" rmdir "%CUDA_LINK%"
-mklink /J "%CUDA_LINK%" "%CUDA_ORIG%" >nul 2>&1
+set CUDA_LINK=%TEMP%\cuda_hip_%RANDOM%%RANDOM%
+mklink /J "%CUDA_LINK%" "%CUDA_ORIG%" >nul 2>nul
+if not exist "%CUDA_LINK%" (
+    echo ERROR: Failed to create junction at %CUDA_LINK%
+    exit /b 1
+)
 
 REM ---- Pre-build Cleanup & Copy ----
 if exist hip_src rmdir /S /Q hip_src
-if exist obj rmdir /S /Q obj
 if exist build rmdir /S /Q build
 if exist comfy_aimdo.egg-info rmdir /S /Q comfy_aimdo.egg-info
 if exist comfy_aimdo\_version.py del /F /Q comfy_aimdo\_version.py
 if exist comfy_aimdo\aimdo.dll del /F /Q comfy_aimdo\aimdo.dll
 if exist comfy_aimdo\aimdo.lib del /F /Q comfy_aimdo\aimdo.lib
-
 mkdir hip_src
-mkdir hip_src\win
 copy src\*.c hip_src\ >nul
 copy src\*.h hip_src\ >nul
-copy src\win\*.c hip_src\win\ >nul
-copy src\win\*.h hip_src\win\ >nul
-
-if exist plat-windows-rocm.c (
-    echo Using existing plat-windows-rocm.c...
-    copy plat-windows-rocm.c hip_src\plat-windows-rocm.c >nul
+if exist src-win\ (
+    copy src-win\*.c hip_src\ >nul
+    copy src-win\*.h hip_src\ >nul
 )
+REM cuda-detour.c requires Microsoft Detours which is CUDA-only — replace with ROCm stub
+if exist hip_src\cuda-detour.c del /F /Q hip_src\cuda-detour.c
 
 REM ---- HIPify ----
 echo Converting CUDA to HIP...
-for %%f in (hip_src\*.h hip_src\*.c hip_src\win\*.h) do (
+for %%f in (hip_src\*.h hip_src\*.c) do (
     hipify-clang --default-preprocessor --clang-resource-directory="%CLANG_RESOURCE_DIR%" --cuda-path=%CUDA_LINK% --cuda-gpu-arch=sm_52 --inplace "%%f" 2>nul
 )
 
 REM ---- Manual type replacements (hipify misses some) ----
 echo Applying type replacements...
-powershell -Command "$files = @(Get-ChildItem hip_src\*.h | ForEach-Object { $_.FullName }) + @(Get-ChildItem hip_src\*.c | ForEach-Object { $_.FullName }) + @(Get-ChildItem hip_src\win\*.c | ForEach-Object { $_.FullName }); foreach ($file in $files) { if (-not (Test-Path $file)) { continue }; $content = Get-Content $file -Raw; $content = $content -replace '#include <cuda\.h>', '#include <hip/hip_runtime.h>'; $content = $content -replace '#include <cuda_runtime\.h>', '#include <hip/hip_runtime.h>'; $content = $content -replace '\bCUdevice\b', 'hipDevice_t'; $content = $content -replace '\bCUdeviceptr\b', 'hipDeviceptr_t'; $content = $content -replace '\bCUresult\b', 'hipError_t'; $content = $content -replace '\bCUDA_SUCCESS\b', 'hipSuccess'; $content = $content -replace '\bCUDA_ERROR_OUT_OF_MEMORY\b', 'hipErrorOutOfMemory'; $content = $content -replace '\bCUmemGenericAllocationHandle\b', 'hipMemGenericAllocationHandle_t'; $content = $content -replace '\bcudaStream_t\b', 'hipStream_t'; $content = $content -replace '\bcuMemGetInfo\b', 'hipMemGetInfo'; $content = $content -replace '\bcuDeviceGet\b', 'hipDeviceGet'; $content = $content -replace '\bcuDeviceTotalMem\b', 'hipDeviceTotalMem'; $content = $content -replace '\bcuDeviceGetName\b', 'hipDeviceGetName'; $content = $content -replace '\bcuMemUnmap\b', 'hipMemUnmap'; $content = $content -replace '\bcuMemRelease\b', 'hipMemRelease'; $content = $content -replace '\bcuMemAddressReserve\b', 'hipMemAddressReserve'; $content = $content -replace '\bcuMemAddressFree\b', 'hipMemAddressFree'; $content = $content -replace '\bcuMemCreate\b', 'hipMemCreate'; $content = $content -replace '\bcuMemSetAccess\b', 'hipMemSetAccess'; $content = $content -replace '\bcuMemMap\b', 'hipMemMap'; $content = $content -replace '\bcuCtxSynchronize\b', 'hipDeviceSynchronize'; $content = $content -replace '\bcuCtxGetDevice\b', 'hipGetDevice'; $content = $content -replace '\bhipCtxGetDevice\b', 'hipGetDevice'; $content = $content -replace '\bhipGetDevice\(&', 'hipGetDevice((int*)&'; $content = $content -replace '\bcuMemAllocAsync\b', 'hipMallocAsync'; $content = $content -replace '\bcuMemFreeAsync\b', 'hipFreeAsync'; $content = $content -replace '\bCUstream\b', 'hipStream_t'; $content = $content -replace 'typedef struct CUstream_st \*hipStream_t;\r?\n', ''; $content = $content -replace '\bcuGetErrorString\s*\(([^,]+),\s*&(\w+)\s*\)', '(($2 = hipGetErrorString($1)) == NULL ? hipErrorUnknown : hipSuccess)'; $content = $content -replace '\bcuGetErrorString\b', 'hipGetErrorString'; $content = $content -replace '\bCUmemAllocationProp\b', 'hipMemAllocationProp'; $content = $content -replace '\bCUmemAccessDesc\b', 'hipMemAccessDesc'; $content = $content -replace '\bCU_MEM_ALLOCATION_TYPE_PINNED\b', 'hipMemAllocationTypePinned'; $content = $content -replace '\bCU_MEM_LOCATION_TYPE_DEVICE\b', 'hipMemLocationTypeDevice'; $content = $content -replace '\bCU_MEM_ACCESS_FLAGS_PROT_READWRITE\b', 'hipMemAccessFlagsProtReadWrite'; Set-Content $file $content }" >nul
+powershell -Command "$files = @(Get-ChildItem hip_src\*.h | ForEach-Object { $_.FullName }) + @(Get-ChildItem hip_src\*.c | ForEach-Object { $_.FullName }); foreach ($file in $files) { if (-not (Test-Path $file)) { continue }; $content = Get-Content $file -Raw; $content = $content -replace '#include <cuda\.h>', '#include <hip/hip_runtime.h>'; $content = $content -replace '#include <cuda_runtime\.h>', '#include <hip/hip_runtime.h>'; $content = $content -replace '\bCUdevice\b', 'hipDevice_t'; $content = $content -replace '\bCUdeviceptr\b', 'hipDeviceptr_t'; $content = $content -replace '\bCUresult\b', 'hipError_t'; $content = $content -replace '\bCUDA_SUCCESS\b', 'hipSuccess'; $content = $content -replace '\bCUDA_ERROR_OUT_OF_MEMORY\b', 'hipErrorOutOfMemory'; $content = $content -replace '\bCUmemGenericAllocationHandle\b', 'hipMemGenericAllocationHandle_t'; $content = $content -replace '\bcudaStream_t\b', 'hipStream_t'; $content = $content -replace '\bcuMemGetInfo\b', 'hipMemGetInfo'; $content = $content -replace '\bcuDeviceGet\b', 'hipDeviceGet'; $content = $content -replace '\bcuDeviceTotalMem\b', 'hipDeviceTotalMem'; $content = $content -replace '\bcuDeviceGetName\b', 'hipDeviceGetName'; $content = $content -replace '\bcuMemUnmap\b', 'hipMemUnmap'; $content = $content -replace '\bcuMemRelease\b', 'hipMemRelease'; $content = $content -replace '\bcuMemAddressReserve\b', 'hipMemAddressReserve'; $content = $content -replace '\bcuMemAddressFree\b', 'hipMemAddressFree'; $content = $content -replace '\bcuMemCreate\b', 'hipMemCreate'; $content = $content -replace '\bcuMemSetAccess\b', 'hipMemSetAccess'; $content = $content -replace '\bcuMemMap\b', 'hipMemMap'; $content = $content -replace '\bcuCtxSynchronize\b', 'hipDeviceSynchronize'; $content = $content -replace '\bcuCtxGetDevice\b', 'hipGetDevice'; $content = $content -replace '\bhipCtxGetDevice\b', 'hipGetDevice'; $content = $content -replace '\bhipGetDevice\(&', 'hipGetDevice((int*)&'; $content = $content -replace '\bcuMemAllocAsync\b', 'hipMallocAsync'; $content = $content -replace '\bcuMemFreeAsync\b', 'hipFreeAsync'; $content = $content -replace '\bCUstream\b', 'hipStream_t'; $content = $content -replace 'typedef struct CUstream_st \*hipStream_t;\r?\n', ''; $content = $content -replace '\bcuGetErrorString\s*\(([^,]+),\s*&(\w+)\s*\)', '(($2 = hipGetErrorString($1)) == NULL ? hipErrorUnknown : hipSuccess)'; $content = $content -replace '\bcuGetErrorString\b', 'hipGetErrorString'; $content = $content -replace '\bCUmemAllocationProp\b', 'hipMemAllocationProp'; $content = $content -replace '\bCUmemAccessDesc\b', 'hipMemAccessDesc'; $content = $content -replace '\bCU_MEM_ALLOCATION_TYPE_PINNED\b', 'hipMemAllocationTypePinned'; $content = $content -replace '\bCU_MEM_LOCATION_TYPE_DEVICE\b', 'hipMemLocationTypeDevice'; $content = $content -replace '\bCU_MEM_ACCESS_FLAGS_PROT_READWRITE\b', 'hipMemAccessFlagsProtReadWrite'; Set-Content $file $content }" >nul
 
 REM ---- Generate AMD DXGI-based cuDeviceGetLuid implementation ----
 echo Generating ROCm platform stubs...
@@ -136,24 +135,11 @@ echo.
 echo #include ^<stdbool.h^>
 echo #include ^<stddef.h^>
 echo.
-echo /* shmem-detect.c stubs for ROCm - ROCm does not use WDDM shared memory */
-echo bool aimdo_wddm_init^(hipDevice_t dev^) {
-echo     ^(void^)dev;
-echo     return true;
-echo }
-echo void aimdo_wddm_cleanup^(^) {}
-echo.
 echo /* cuda-detour.c stubs for ROCm - no CUDA hook detours needed */
 echo bool aimdo_setup_hooks^(^) {
 echo     return true;
 echo }
 echo void aimdo_teardown_hooks^(^) {}
-echo.
-echo /* wddm_budget_deficit: on ROCm delegate to cuda_budget_deficit */
-echo size_t cuda_budget_deficit^(int device, size_t bytes^);
-echo size_t wddm_budget_deficit^(int device, size_t bytes^) {
-echo     return cuda_budget_deficit^(device, bytes^);
-echo }
 ) > hip_src\rocm_stubs.c
 
 powershell -Command "$file = 'hip_src\plat.h'; $content = Get-Content $file -Raw; if ($content -notmatch 'hipError_t cuDeviceGetLuid') { $content = $content + \"`r`n`r`nhipError_t cuDeviceGetLuid(char *luid, unsigned int *deviceNodeMask, hipDevice_t dev);`r`n\"; Set-Content $file $content -NoNewline }" >nul
@@ -206,7 +192,7 @@ echo Found WinSDK at: %WINSDK_BASE% (%WINSDK_VER%)
 set "COMPILE_FLAGS=-D__HIP_PLATFORM_AMD__ -O3 -fms-extensions -fms-compatibility -I"%HIP_SRC_PATH%" -I"%HIP_INCLUDE%" -isystem "%CLANG_RESOURCE_DIR%\include" -isystem "%MSVC_VER_PATH%\include" -isystem "%WINSDK_INC_PATH%\ucrt" -isystem "%WINSDK_INC_PATH%\shared" -isystem "%WINSDK_INC_PATH%\um""
 
 set OBJ_FILES=
-for %%f in (hip_src\*.c hip_src\win\*.c) do (
+for %%f in (hip_src\*.c) do (
     echo Compiling %%f...
     "%CLANG_EXE%" %COMPILE_FLAGS% -c "%%f" -o "obj\%%~nf.obj"
     if errorlevel 1 (
@@ -263,7 +249,7 @@ if %BUILD_RESULT% EQU 0 (
 		echo After that, one manual step:
         for /f "tokens=*" %%i in ('python -c "import site; print(site.getsitepackages()[0])"') do set "VENV_SITE=%%i"
         echo Copy %ROCM_PATH%\bin\amdhip64_7.dll
-        echo   to !VENV_SITE!\comfy_aimdo\
+        echo   to !VENV_SITE!\Lib\site-packages\comfy_aimdo\
         echo   Without this it may use the system-wide version or fail to
         echo   load entirely because the dependency cannot be resolved
         echo   from within the virtual environment.
