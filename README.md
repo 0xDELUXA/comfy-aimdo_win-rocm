@@ -90,11 +90,11 @@ curl -O https://raw.githubusercontent.com/0xDELUXA/comfy-aimdo_win-rocm/refs/hea
 ```powershell
 .\build-rocm-windows.bat
 ```
-8. - The script will automatically compile `aimdo.dll` and modify the necessary files to be compatible with Windows ROCm. During the process, it will prompt you for the locations of the ROCm SDK core and CUDA toolkit
+8. - The script will automatically compile `aimdo.dll` along with `aimdo.lib` and modify the necessary files to be compatible with Windows ROCm. During the process, it will prompt you for the locations of the ROCm SDK core and CUDA toolkit
    - To install the built files, run `pip install .`
-   - After install, you must manually copy `amdhip64_7.dll` from your ROCm SDK into your venv - the script will tell you exactly where
+   - After install, you must manually copy `amdhip64_7.dll` from your ROCm SDK into your venv - the script will specify the required location
 9. After completion, `comfy-aimdo` should work on Windows ROCm.
 
 Tested on Windows 11 with the latest version of TheRock ROCm (`7.12.0a20260218`), PyTorch (`2.12.0a0+rocm7.12.0a20260218`) and an RDNA4 GPU (AMD Radeon RX 9060 XT) in latest ComfyUI (`v0.14.2`), launched with the `--fast` flag.
 
-*This is experimental and may not function as expected. Even after successful build, installation, and loading, occasional GPU hangs may occur.*
+*This is experimental and may not function as expected. Even after successful build, installation, and loading, occasional GPU hangs may occur on AMD.*
