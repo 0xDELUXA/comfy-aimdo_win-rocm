@@ -98,4 +98,4 @@ curl -O https://raw.githubusercontent.com/0xDELUXA/comfy-aimdo_win-rocm/refs/hea
 
 Tested on Windows 11 with the latest version of TheRock ROCm (`7.12.0a20260218`), PyTorch (`2.12.0a0+rocm7.12.0a20260218`) and an RDNA4 GPU (AMD Radeon RX 9060 XT) in latest ComfyUI (`v0.14.2`), launched with the `--fast` flag.
 
-*This is experimental and may not function as expected. Even after successful build, installation, and loading, occasional GPU hangs may occur on AMD.*
+*This is experimental and may not function as expected. Even after successful build, installation, and loading, occasional GPU hangs/OOMs may occur on AMD.*
