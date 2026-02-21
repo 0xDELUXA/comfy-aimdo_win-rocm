@@ -96,6 +96,11 @@ curl -O https://raw.githubusercontent.com/0xDELUXA/comfy-aimdo_win-rocm/refs/hea
    - After install, you must manually copy `amdhip64_7.dll` from your ROCm SDK into your venv - the script will specify the required location
 9. After completion, `comfy-aimdo` should work on Windows ROCm.
 
+### Additional notes
+
+- The "new" `Model Initializing...` phase is quite heavy on AMD GPUs. The larger the model, the longer it takes.
+- If your ComfyUI startup console prints: `HIP Library Path: C:\WINDOWS\SYSTEM32\amdhip64_7.dll`, (at least on RDNA4 with Adrenaline 26.1.1) `comfy-aimdo` will not work at all. This is why the final manual copy step is required.
+
 Tested on Windows 11 with the latest version of TheRock ROCm (`7.12.0a20260218`), PyTorch (`2.12.0a0+rocm7.12.0a20260218`) and an RDNA4 GPU (AMD Radeon RX 9060 XT) in latest ComfyUI (`v0.14.2`), launched with the `--fast` flag.
 
 *This is experimental and may not function as expected. Even after successful build, installation, and loading, occasional GPU hangs/OOMs may occur on AMD.*
