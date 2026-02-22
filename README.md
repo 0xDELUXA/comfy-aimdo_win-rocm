@@ -111,6 +111,8 @@ curl -O https://raw.githubusercontent.com/0xDELUXA/comfy-aimdo_win-rocm/refs/hea
 - If your ComfyUI startup console prints: `HIP Library Path: C:\WINDOWS\SYSTEM32\amdhip64_7.dll`, (at least on RDNA4 with Adrenalin 26.1.1) `comfy-aimdo` will not work at all. This is why the final manual copy step is required.
 - For some reason, in certain workflows, `comfy-aimdo` breaks [`triton-windows`](https://github.com/triton-lang/triton-windows) on AMD with the following error:   `ValueError: Pointer argument (at 0) cannot be accessed from Triton (cpu tensor?)`.  As a result, we cannot use SageAttention V1 or FlashAttention-2, only SDPA works (for now).
 - Don't expect `comfy-aimdo` to improve VRAM management or average performance on AMD compared to not using it. I just got it working by hipifying the CUDA code and adding some workarounds. It would be appreciated if an AMD developer or a community member with deeper insight could further optimize the build script.
+- That base64-encoded script is really scary. I'll try to find another solution for it to work without encoding.
+- After you've built and installed it, you can try whether it works on your system using this script: [example_hip.py](https://gist.github.com/0xDELUXA/f4188f424c145e92c2620db1afa42d29). It should print `[No Load Needed]`, `[Offloaded]`, etc., and not just error out.
 - According to the [ROCm documentation](https://rocm.docs.amd.com/projects/HIP/en/latest/doxygen/html/group___virtual.html):
 > Please note, the virtual memory management functions of the HIP runtime API are implemented on Linux and are under development on Windows.
 
