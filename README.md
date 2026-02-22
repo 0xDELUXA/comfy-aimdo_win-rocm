@@ -114,6 +114,6 @@ curl -O https://raw.githubusercontent.com/0xDELUXA/comfy-aimdo_win-rocm/refs/hea
 - According to the [ROCm documentation](https://rocm.docs.amd.com/projects/HIP/en/latest/doxygen/html/group___virtual.html):
 > Please note, the virtual memory management functions of the HIP runtime API are implemented on Linux and are under development on Windows.
 
-Tested on Windows 11 with the latest versions of TheRock ROCm (`7.12.0a20260218`) and PyTorch (`2.12.0a0+rocm7.12.0a20260218`), using an RDNA4 GPU (AMD Radeon RX 9060 XT), in the latest ComfyUI (`v0.14.2`), launched with the `--fast` flag (WAN, Qwen, FLUX, SDXL workloads - especially WAN – exceeds VRAM and immediately triggers OOM errors if the `WanVideo Block Swap` node is not used (`comfy-aimdo` disabled). Enabling `comfy-aimdo` prevents OOMs, so theoretically it does work).
+Tested on Windows 11 with the latest versions of TheRock ROCm (`7.12.0a20260218`) and PyTorch (`2.12.0a0+rocm7.12.0a20260218`), using an RDNA4 GPU (AMD Radeon RX 9060 XT), in the latest ComfyUI (`v0.14.2`), launched with the `--fast` flag. WAN, Qwen, FLUX, SDXL workloads - especially WAN – exceed VRAM and immediately trigger OOM errors if a ` Block Swap` node is not used (with `comfy-aimdo` disabled). Enabling `comfy-aimdo` prevents OOMs, so theoretically it does work.
 
 *This is experimental and may not function as expected. Even after successful build, installation, and loading, occasional GPU hangs, out-of-memory (OOM) errors, and other runtime issues may occur on AMD hardware running Windows.*
