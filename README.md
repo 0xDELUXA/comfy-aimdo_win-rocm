@@ -101,7 +101,7 @@ cd .. && pip install .
 ``` 
 - After install, you must manually copy `amdhip64_7.dll` from your ROCm SDK into your `venv\Lib\site-packages\comfy_aimdo\` - the script will specify the required location
 
-8. After completion, `comfy-aimdo` should work on Windows ROCm.
+8. Upon completion, `comfy-aimdo` should work on Windows ROCm.
 
 ### Additional notes
 
