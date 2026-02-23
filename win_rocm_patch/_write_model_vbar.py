@@ -128,7 +128,7 @@ class ModelVBAR:
         return lib.vbar_free_memory(self._ptr, int(size_bytes))
 
     def __del__(self):
-        if hasattr(self, \'_ptr\') and self._ptr:
+        if hasattr(self, \'_ptr\') and self._ptr and lib is not None:
             lib.vbar_free(self._ptr)
             self._ptr = None
 

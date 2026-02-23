@@ -2,10 +2,6 @@
 setlocal enabledelayedexpansion
 
 REM Build script for comfy-aimdo on Windows ROCm
-REM
-REM Put this script and all _*.py / _*.ps1 helpers in a subfolder of your
-REM project (e.g. win_rocm_patch\) and run it from anywhere -- it will
-REM automatically cd to the project root (the parent of this folder).
 
 set "SCRIPT_DIR=%~dp0"
 
@@ -253,8 +249,10 @@ if %BUILD_RESULT% EQU 0 (
         echo After that, one manual step:
         for /f "tokens=*" %%i in ('python -c "import site; print(site.getsitepackages()[0])"') do set "VENV_SITE=%%i"
         echo Copy %ROCM_PATH%\bin\amdhip64_7.dll
-        echo   to !VENV_SITE!\comfy_aimdo\
-        echo   Without this the DLL may fail to load from inside the venv.
+        echo   to !VENV_SITE!\Lib\site-packages\comfy_aimdo\
+        echo   This ensures the package uses the venv-local ROCm runtime.
+		echo   Otherwise, it will fall back to the system-wide version,
+		echo   which may fail if the versions differ.
         echo ============================================
     ) else (
         echo ============================================
