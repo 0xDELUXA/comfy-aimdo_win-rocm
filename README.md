@@ -78,21 +78,15 @@ cd C:/
 
 3. Clone this fork:
 ```powershell
-git clone https://github.com/0xDELUXA/comfy-aimdo_win-rocm
+git clone https://github.com/0xDELUXA/comfy-aimdo_win-rocm.git
 ```
 
-4. Navigate to its directory:
+4. Navigate to the `win_rocm_patch` directory:
 ```powershell
-cd comfy-aimdo_win-rocm
-```
-- Alternatively, you can get the latest updates by cloning the upstream [repository](https://github.com/Comfy-Org/comfy-aimdo). In that case, you need to download the Windows ROCm build script into the cloned directory, and resolve potential conflicts:
-```powershell
-curl -O https://raw.githubusercontent.com/0xDELUXA/comfy-aimdo_win-rocm/refs/heads/master/build-rocm-windows.bat
+cd comfy-aimdo_win-rocm\win_rocm_patch
 ```
 
 5. Activate your ComfyUI virtual environment.
-
-   (If you changed directories, return to the cloned `comfy-aimdo` folder before continuing.)
 
 6. Run the batch script:
 ```powershell
@@ -100,7 +94,7 @@ curl -O https://raw.githubusercontent.com/0xDELUXA/comfy-aimdo_win-rocm/refs/hea
 ```
 
 7. - The script will automatically compile `aimdo.dll` along with `aimdo.lib` and modify the necessary files to be compatible with Windows ROCm. During the process, it will prompt you for the locations of the ROCm SDK core, CUDA Toolkit, and Visual Studio.
-   - To install the built files, run: `pip install .`
+   - To install the built files, run: `cd .. && pip install .`
    - After install, you must manually copy `amdhip64_7.dll` from your ROCm SDK into your venv - the script will specify the required location
 
 8. After completion, `comfy-aimdo` should work on Windows ROCm.
@@ -111,7 +105,6 @@ curl -O https://raw.githubusercontent.com/0xDELUXA/comfy-aimdo_win-rocm/refs/hea
 - If your ComfyUI startup console prints: `HIP Library Path: C:\WINDOWS\SYSTEM32\amdhip64_7.dll`, (at least on RDNA4 with Adrenalin 26.1.1) `comfy-aimdo` will not work at all. This is why the final manual copy step is required.
 - For some reason, in certain workflows, `comfy-aimdo` breaks [`triton-windows`](https://github.com/triton-lang/triton-windows) on AMD with the following error:   `ValueError: Pointer argument (at 0) cannot be accessed from Triton (cpu tensor?)`.  As a result, we cannot use SageAttention V1 or FlashAttention-2, only SDPA works (for now).
 - Don't expect `comfy-aimdo` to improve VRAM management or average performance on AMD compared to not using it. I just got it working by hipifying the CUDA code and adding some workarounds. It would be appreciated if an AMD developer or a community member with deeper insight could further optimize the build script.
-- That base64-encoded part of the script is really scary, I know. I'll try to find another solution for it to work without encoding.
 - After you've built and installed it, you can try whether it works on your system using this script: [example_hip.py](https://gist.github.com/0xDELUXA/b1086dfde9770cfc4c08d5956740bdd4). It should print `[No Load Needed]`, `[Offloaded]`, etc., and not just error out.
 - According to the [ROCm documentation](https://rocm.docs.amd.com/projects/HIP/en/latest/doxygen/html/group___virtual.html):
 > Please note, the virtual memory management functions of the HIP runtime API are implemented on Linux and are under development on Windows.
