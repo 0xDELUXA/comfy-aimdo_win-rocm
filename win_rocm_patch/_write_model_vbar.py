@@ -1,0 +1,162 @@
+"""
+_write_model_vbar.py
+Writes the fixed model_vbar.py to the path given as argv[1].
+Usage: python _write_model_vbar.py comfy_aimdo/model_vbar.py
+"""
+import sys
+import os
+
+if len(sys.argv) < 2:
+    print("Usage: python _write_model_vbar.py <output_path>", file=sys.stderr)
+    sys.exit(1)
+
+out_path = sys.argv[1]
+os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
+
+content = '''\
+import ctypes
+
+from . import control
+
+lib = control.lib
+
+# Bindings
+if lib is not None:
+    lib.vbar_allocate.argtypes = [ctypes.c_uint64, ctypes.c_int, ctypes.c_void_p]  # pre_addr=NULL
+    lib.vbar_allocate.restype = ctypes.c_void_p
+
+    lib.vbar_set_watermark_limit.argtypes = [ctypes.c_void_p, ctypes.c_uint64]
+
+    lib.vbars_reset_watermark_limits.argtypes = []
+
+    lib.vbar_prioritize.argtypes = [ctypes.c_void_p]
+
+    lib.vbar_deprioritize.argtypes = [ctypes.c_void_p]
+
+    lib.vbar_get.argtypes = [ctypes.c_void_p]
+    lib.vbar_get.restype = ctypes.c_uint64
+
+    lib.vbar_free.argtypes = [ctypes.c_void_p]
+
+    lib.vbar_fault.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint32)]
+    lib.vbar_fault.restype = ctypes.c_int
+
+    lib.vbar_unpin.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64]
+
+    lib.vbar_loaded_size.argtypes = [ctypes.c_void_p]
+    lib.vbar_loaded_size.restype = ctypes.c_size_t
+
+    lib.vbar_free_memory.argtypes = [ctypes.c_void_p, ctypes.c_uint64]
+    lib.vbar_free_memory.restype = ctypes.c_uint64
+
+
+class ModelVBAR:
+    def __init__(self, size, device):
+        # Ensure the DLL\'s HIP runtime is initialized for this device.
+        # control.init() only loads the DLL; lib.init(device_id) must also be
+        # called before any hipMem* API (including hipMemAddressReserve) will work.
+        if not control.init_device(device):
+            raise RuntimeError(f"Failed to initialize aimdo for device {device}")
+
+        # On WDDM Windows, hipMemAddressReserve is bounded by the driver memory
+        # budget, not the full virtual address space like on Linux. Cap to actual
+        # VRAM so callers don\'t need to know the GPU size, and retry with halving
+        # in case the budget is lower than total_memory reports.
+        try:
+            import torch
+            vram_total = torch.cuda.get_device_properties(device).total_memory
+            size = min(int(size), vram_total)
+        except Exception:
+            size = int(size)
+
+        self._ptr = None
+        attempt = int(size)
+        while attempt >= (32 << 20):  # don\'t go below one VBAR page (32 MB)
+            self._ptr = lib.vbar_allocate(attempt, device, None)
+            if self._ptr:
+                size = attempt
+                break
+            attempt //= 2
+
+        if not self._ptr:
+            raise MemoryError("VBAR allocation failed")
+
+        self.device = device
+        self.max_size = size
+        self.offset = 0
+        self.base_addr = lib.vbar_get(self._ptr)
+
+    def prioritize(self):
+        lib.vbar_prioritize(self._ptr)
+
+    def deprioritize(self):
+        lib.vbar_deprioritize(self._ptr)
+
+    def alloc(self, num_bytes):
+        self.offset = (self.offset + 511) & ~511
+
+        if self.offset + num_bytes > self.max_size:
+            raise MemoryError("VBAR OOM")
+
+        alloc = self.base_addr + self.offset
+        self.offset += num_bytes
+        return (self, alloc, num_bytes)
+
+    def fault(self, alloc, size):
+        offset = alloc - self.base_addr
+        # +2: one for misalignment and one for rounding
+        signature = (ctypes.c_uint32 * (size // (32 * 1024 ** 2) + 2))()
+        res = lib.vbar_fault(self._ptr, offset, size, signature)
+        if res == 0:
+            return signature
+        elif res == 1:
+            return None
+        else:
+            raise RuntimeError(f"Fault failed: {res}")
+
+    def unpin(self, alloc, size):
+        offset = alloc - self.base_addr
+        lib.vbar_unpin(self._ptr, offset, size)
+
+    def loaded_size(self):
+        return lib.vbar_loaded_size(self._ptr)
+
+    def set_watermark_limit(self, size_bytes):
+        lib.vbar_set_watermark_limit(self._ptr, size_bytes)
+
+    def free_memory(self, size_bytes):
+        return lib.vbar_free_memory(self._ptr, int(size_bytes))
+
+    def __del__(self):
+        if hasattr(self, \'_ptr\') and self._ptr:
+            lib.vbar_free(self._ptr)
+            self._ptr = None
+
+
+def vbar_fault(alloc):
+    vbar, offset, size = alloc
+    return vbar.fault(offset, size)
+
+
+def vbar_unpin(alloc):
+    if alloc is not None:
+        vbar, offset, size = alloc
+        vbar.unpin(offset, size)
+
+
+def vbar_signature_compare(a, b):
+    if a is None or b is None:
+        return False
+    if len(a) != len(b):
+        raise ValueError(f"Signatures of mismatched length {len(a)} != {len(b)}")
+    return memoryview(a) == memoryview(b)
+
+
+def vbars_reset_watermark_limits():
+    lib.vbars_reset_watermark_limits()
+'''
+
+with open(out_path, 'w', newline='\n') as f:
+    f.write(content)
+
+print(f"  Written: {out_path}")
