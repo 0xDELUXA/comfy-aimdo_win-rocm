@@ -94,8 +94,11 @@ cd comfy-aimdo_win-rocm\win_rocm_patch
 ```
 
 7. - The script will automatically compile `aimdo.dll` along with `aimdo.lib` and modify the necessary files to be compatible with Windows ROCm. During the process, it will prompt you for the locations of the ROCm SDK core, CUDA Toolkit, and Visual Studio.
-   - To install the built files, run: `cd .. && pip install .`
-   - After install, you must manually copy `amdhip64_7.dll` from your ROCm SDK into your venv - the script will specify the required location
+   - To install the built files, run:
+```powershell
+cd .. && pip install .
+``` 
+   - After install, you must manually copy `amdhip64_7.dll` from your ROCm SDK into your `venv\Lib\site-packages\comfy_aimdo\` - the script will specify the required location
 
 8. After completion, `comfy-aimdo` should work on Windows ROCm.
 
