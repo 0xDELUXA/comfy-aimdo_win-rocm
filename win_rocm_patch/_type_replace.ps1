@@ -1,6 +1,5 @@
 # _type_replace.ps1
 # Applies CUDA -> HIP type/function renames that hipify-clang misses.
-# Run from the project root (where hip_src/ lives).
 
 $files = @(Get-ChildItem hip_src\*.h) + @(Get-ChildItem hip_src\*.c)
 

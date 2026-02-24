@@ -1,9 +1,6 @@
 """
 _make_junction.py
 Creates a directory junction (Windows symlink) from argv[1] -> argv[2].
-Using Python avoids the mklink quoting/availability issues when the
-script is launched from PowerShell.
-Usage: python _make_junction.py <link_path> <target_path>
 """
 import sys
 import os

@@ -1,7 +1,6 @@
 """
 _write_model_vbar.py
 Writes the fixed model_vbar.py to the path given as argv[1].
-Usage: python _write_model_vbar.py comfy_aimdo/model_vbar.py
 """
 import sys
 import os

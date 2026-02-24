@@ -1,7 +1,6 @@
 """
 _patch_prereserved.py
 Patches hip_src C/H files for AMD Windows pre-reserved VA support.
-Run from the comfy-aimdo project root (where hip_src/ lives).
 """
 import sys
 import re as _re

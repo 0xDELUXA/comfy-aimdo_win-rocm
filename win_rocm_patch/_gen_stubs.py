@@ -2,7 +2,6 @@
 _gen_stubs.py
 Generates hip_src/rocm_stubs.c (DXGI-based cuDeviceGetLuid + no-op Detour stubs)
 and appends the cuDeviceGetLuid declaration to hip_src/plat.h if missing.
-Run from the project root (where hip_src/ lives).
 """
 import os
 
