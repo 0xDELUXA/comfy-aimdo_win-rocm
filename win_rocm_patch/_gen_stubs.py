@@ -1,7 +1,8 @@
 """
 _gen_stubs.py
-Generates hip_src/rocm_stubs.c (DXGI-based cuDeviceGetLuid + no-op Detour stubs)
-and appends the cuDeviceGetLuid declaration to hip_src/plat.h if missing.
+Generates hip_src/rocm_stubs.c (DXGI-based cuDeviceGetLuid) and
+hip_src/hip-detour.c (real Detours hooks for amdhip64_7.dll), then
+appends the cuDeviceGetLuid declaration to hip_src/plat.h if missing.
 """
 import os
 
