@@ -97,7 +97,8 @@ cd comfy-aimdo_win-rocm\win_rocm_patch
 - The script will automatically compile `aimdo.dll` along with `aimdo.lib` and modify the necessary files to be compatible with Windows ROCm. During the process, it will prompt you for the locations of the ROCm SDK core, CUDA Toolkit, and Visual Studio.
 - To install the built files, run:
 ```powershell
-cd .. && pip install .
+cd ..
+pip install .
 ``` 
 - After install, you must manually copy `amdhip64_7.dll` from your ROCm SDK into your `venv\Lib\site-packages\comfy_aimdo\` - the script will specify the required location
 
@@ -105,11 +106,24 @@ cd .. && pip install .
 
 ### Additional notes
 
-- The "new" `Model Initializing...` phase introduced by `comfy-aimdo` can be quite demanding on AMD GPUs, particularly for larger models, and may even hang.
 - If your ComfyUI startup console prints: `HIP Library Path: C:\WINDOWS\SYSTEM32\amdhip64_7.dll`, (at least on RDNA4 with Adrenalin 26.1.1) `comfy-aimdo` will not work at all. This is why the final manual copy step is required.
+- The "new" `Model Initializing...` phase introduced by `comfy-aimdo` can be quite demanding on AMD GPUs, particularly for larger models, and may even hang.
 - For some reason, in certain workflows, `comfy-aimdo` breaks [`triton-windows`](https://github.com/triton-lang/triton-windows) on AMD with the following error:   `ValueError: Pointer argument (at 0) cannot be accessed from Triton (cpu tensor?)`.  As a result, we cannot use SageAttention V1 or FlashAttention-2, only SDPA works (for now).
-- Don't expect `comfy-aimdo` to improve VRAM management or average performance on AMD compared to not using it. I just got it working by hipifying the CUDA code and adding some workarounds. It would be appreciated if an AMD developer or a community member with deeper insight could further optimize the build script.
+- Running `pip install -r requirements.txt` will always uninstall the Windows ROCm version of `comfy-aimdo` and install the Nvidia-only version. After running this command, you need to reinstall the ROCm version with:
+```powershell
+venv\Scripts\activate
+pip uninstall comfy-aimdo -y
+cd comfy-aimdo_win-rocm
+pip install .
+```
+Alternatively, if you use a batch script to start ComfyUI, you can add the following lines to your script as a workaround:
+```powershell
+powershell -Command "Get-Content 'E:\AI\ComfyUI\requirements.txt' | Where-Object { $_ -notmatch 'comfy-aimdo' } | Out-File -Encoding ASCII 'temp_reqs-no_aimdo.txt'"
+python -m pip install -r temp_reqs-no_aimdo.txt
+del temp_reqs-no_aimdo.txt
+```
 - After you've built and installed it, you can test whether it works on your system using this script: [example_hip.py](https://gist.github.com/0xDELUXA/b1086dfde9770cfc4c08d5956740bdd4). It should print `[No Load Needed]`, `[Offloaded]`, etc., and not just error out. [Here](https://gist.github.com/0xDELUXA/912a3ef434dc4599ecb35ba852904244) is my local output. Yes, it isn’t flawless, but at least it does something.
+- Don't expect `comfy-aimdo` to improve VRAM management or average performance on AMD compared to not using it. I just got it working by hipifying the CUDA code and adding some workarounds. It would be appreciated if an AMD developer or a community member with deeper insight could further optimize the build script.
 - According to the [ROCm documentation](https://rocm.docs.amd.com/projects/HIP/en/latest/doxygen/html/group___virtual.html):
 > Please note, the virtual memory management functions of the HIP runtime API are implemented on Linux and are under development on Windows.
 
