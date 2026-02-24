@@ -116,7 +116,7 @@ pip uninstall comfy-aimdo -y
 cd comfy-aimdo_win-rocm
 pip install .
 ```
-Alternatively, if you use a batch script to start ComfyUI, you can add the following lines to your script as a workaround:
+Alternatively, if you use a batch script to start ComfyUI, you can add the following lines to your script as a workaround to prevent reinstalling the Nvidia-only version:
 ```powershell
 powershell -Command "Get-Content 'E:\AI\ComfyUI\requirements.txt' | Where-Object { $_ -notmatch 'comfy-aimdo' } | Out-File -Encoding ASCII 'temp_reqs-no_aimdo.txt'"
 python -m pip install -r temp_reqs-no_aimdo.txt
