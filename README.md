@@ -118,7 +118,8 @@ pip install .
 ```
 Alternatively, if you use a batch script to start ComfyUI, you can add the following lines to your script as a workaround to prevent reinstalling the Nvidia-only version:
 ```powershell
-powershell -Command "Get-Content 'E:\AI\ComfyUI\requirements.txt' | Where-Object { $_ -notmatch 'comfy-aimdo' } | Out-File -Encoding ASCII 'temp_reqs-no_aimdo.txt'"
+set "COMFY_PATH=%~dp0"
+powershell -Command "Get-Content \"$env:COMFY_PATH\requirements.txt\" | Where-Object { $_ -notmatch 'comfy-aimdo' } | Out-File -Encoding ASCII 'temp_reqs-no_aimdo.txt'"
 python -m pip install -r temp_reqs-no_aimdo.txt
 del temp_reqs-no_aimdo.txt
 ```
