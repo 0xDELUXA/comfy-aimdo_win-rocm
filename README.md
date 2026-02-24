@@ -56,7 +56,7 @@ see examples/example.py
 
 ## Experimental Windows ROCm ([TheRock](https://github.com/ROCm/TheRock)) support 
 
-This fork adds a Windows batch script to build `comfy-aimdo` with ROCm support.
+This fork provides a batch script and necessary tweaks to allow `comfy-aimdo` to build and run with ROCm support on Windows.
 
 ### Prerequisites
 
@@ -116,7 +116,7 @@ pip uninstall comfy-aimdo -y
 cd comfy-aimdo_win-rocm
 pip install .
 ```
-Alternatively, if you use a batch script to start ComfyUI, you can add the following lines to your script as a workaround to prevent reinstalling the Nvidia-only version:
+   Alternatively, if you use a batch script to start ComfyUI, you can add the following lines to your script as a workaround to prevent reinstalling the Nvidia-only version:
 ```powershell
 set "COMFY_PATH=%~dp0"
 powershell -Command "Get-Content \"$env:COMFY_PATH\requirements.txt\" | Where-Object { $_ -notmatch 'comfy-aimdo' } | Out-File -Encoding ASCII 'temp_reqs-no_aimdo.txt'"
