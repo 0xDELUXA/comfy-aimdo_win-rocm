@@ -100,8 +100,6 @@ bool aimdo_setup_hooks(void) {
         return false;
     }
 
-    log(DEBUG, "%s: hooks successfully installed", __func__);
-    fprintf(stderr, "\\n");
     return true;
 }
 
