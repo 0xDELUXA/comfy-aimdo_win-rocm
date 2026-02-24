@@ -68,7 +68,7 @@ This fork provides a batch script and necessary tweaks to allow `comfy-aimdo` to
 
 ### Build from source and and Install
 
-1. Open PowerShell or Command Prompt.
+1. Open PowerShell.
 2. Navigate to the folder where you want to clone the repository.
 
    For example:
