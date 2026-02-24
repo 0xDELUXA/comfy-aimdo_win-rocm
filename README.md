@@ -109,6 +109,7 @@ pip install .
 
 ### Additional notes
 
+- `comfy-aimdo` is only loaded and used if ComfyUI is launched with the `--fast` flag.
 - If your ComfyUI startup console prints: `HIP Library Path: C:\WINDOWS\SYSTEM32\amdhip64_7.dll`, (at least on RDNA4 with Adrenalin 26.1.1) `comfy-aimdo` will not work at all. This is why the final manual copy step is required.
 - The "new" `Model Initializing...` phase introduced by `comfy-aimdo` can be quite demanding on AMD GPUs, particularly for larger models, and may even hang.
 - For some reason, in certain workflows, `comfy-aimdo` breaks [`triton-windows`](https://github.com/triton-lang/triton-windows) on AMD with the following error:   `ValueError: Pointer argument (at 0) cannot be accessed from Triton (cpu tensor?)`.  As a result, we cannot use SageAttention V1 or FlashAttention-2, only SDPA works (for now).
