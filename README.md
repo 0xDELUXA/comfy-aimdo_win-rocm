@@ -127,7 +127,7 @@ python -m pip install -r temp_reqs-no_aimdo.txt
 del temp_reqs-no_aimdo.txt
 ```
 - After you've built and installed it, you can test whether it works on your system using this script: [example_hip.py](https://gist.github.com/0xDELUXA/b1086dfde9770cfc4c08d5956740bdd4). It should print `[No Load Needed]`, `[Offloaded]`, etc., and not just error out. [Here](https://gist.github.com/0xDELUXA/912a3ef434dc4599ecb35ba852904244) is my local output. Yes, it isn’t flawless, but at least it does something.
-- Don't expect `comfy-aimdo` to improve VRAM management or average performance on AMD compared to not using it. I just got it working by hipifying the CUDA code and adding some workarounds. It would be appreciated if an AMD developer or a community member with deeper insight could further optimize the build script.
+- Don't expect `comfy-aimdo` to improve VRAM management or overall performance on AMD compared to not using it. I just got it working by hipifying the CUDA code and adding some workarounds. It would be appreciated if an AMD developer or a community member with deeper insight could further optimize the build script.
 - According to the [ROCm documentation](https://rocm.docs.amd.com/projects/HIP/en/latest/doxygen/html/group___virtual.html):
 > Please note, the virtual memory management functions of the HIP runtime API are implemented on Linux and are under development on Windows.
 
