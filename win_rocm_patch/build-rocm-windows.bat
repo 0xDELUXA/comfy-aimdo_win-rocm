@@ -43,6 +43,44 @@ if not exist "%CUDA_ORIG%" (
     exit /b 1
 )
 
+REM ---- Build Microsoft Detours from patch folder ----
+set "DETOURS_DIR=%SCRIPT_DIR%Detours"
+if not exist "%DETOURS_DIR%" (
+    echo Cloning Microsoft Detours into %DETOURS_DIR%...
+    git clone --depth 1 https://github.com/microsoft/Detours.git "%DETOURS_DIR%"
+    if %errorlevel% neq 0 (
+        echo ERROR: Failed to clone Detours. Is git in your PATH?
+        exit /b 1
+    )
+)
+if not exist "%DETOURS_DIR%\lib.X64\detours.lib" (
+    echo Building Detours...
+    for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set "VS_PATH_DETOURS=%%i"
+    if not defined VS_PATH_DETOURS (
+        echo ERROR: Could not find Visual Studio for building Detours.
+        exit /b 1
+    )
+    set "DETOURS_BUILD_BAT=%TEMP%\build_detours_%RANDOM%.bat"
+    (
+        echo @echo off
+        echo call "!VS_PATH_DETOURS!\VC\Auxiliary\Build\vcvars64.bat"
+        echo cd /d "!DETOURS_DIR!"
+        echo cd src
+		echo nmake
+    ) > "!DETOURS_BUILD_BAT!"
+    cmd.exe /c "!DETOURS_BUILD_BAT!"
+    del "!DETOURS_BUILD_BAT!" >nul 2>nul
+    if %errorlevel% neq 0 (
+        echo ERROR: Detours nmake failed.
+        exit /b 1
+    )
+    if not exist "%DETOURS_DIR%\lib.X64\detours.lib" (
+        echo ERROR: Detours built but detours.lib still not found. Check nmake output above.
+        exit /b 1
+    )
+)
+echo Detours ready at: %DETOURS_DIR%
+
 REM ---- Derive paths ----
 set "ROCM_CLANG=%ROCM_PATH%\lib\llvm\lib\clang"
 set "CLANG_EXE=%ROCM_PATH%\lib\llvm\bin\clang.exe"
@@ -91,8 +129,7 @@ if exist src-win\ (
     copy src-win\*.c hip_src\ >nul 2>nul
     copy src-win\*.h hip_src\ >nul 2>nul
 )
-REM cuda-detour.c requires Microsoft Detours which is CUDA-only -- replace with ROCm stub
-if exist hip_src\cuda-detour.c del /F /Q hip_src\cuda-detour.c
+REM cuda-detour.c is hipified in-place like all other sources; hip-detour.c is generated later
 
 set "HIPIFY_EXE=%ROCM_PATH%\bin\hipify-clang.exe"
 
@@ -113,6 +150,9 @@ if not exist "%HIPIFY_EXE%" (
 for %%f in (hip_src\*.h hip_src\*.c) do (
     "%HIPIFY_EXE%" --default-preprocessor --clang-resource-directory="%CLANG_RESOURCE_DIR%" --cuda-path="%CUDA_LINK%" --cuda-gpu-arch=sm_52 --inplace "%%f" >nul 2>nul
 )
+
+REM cuda-detour.c is replaced by the generated hip-detour.c -- remove it now
+if exist hip_src\cuda-detour.c del /F /Q hip_src\cuda-detour.c
 
 REM ---- Manual type replacements (hipify misses some) ----
 echo Applying type replacements...
@@ -174,6 +214,7 @@ echo Found WinSDK at: %WINSDK_BASE% (%WINSDK_VER%)
 
 REM Build compile flags across multiple lines to stay readable
 set "CF=-D__HIP_PLATFORM_AMD__ -O3 -fms-extensions -fms-compatibility"
+set "CF=%CF% -I"%DETOURS_DIR%\include""
 set "CF=%CF% -I"%HIP_SRC_PATH%" -I"%HIP_INCLUDE%""
 set "CF=%CF% -isystem "%CLANG_RESOURCE_DIR%\include""
 set "CF=%CF% -isystem "%MSVC_VER_PATH%\include""
@@ -208,14 +249,19 @@ if exist comfy_aimdo\aimdo.dll del comfy_aimdo\aimdo.dll
     "-libpath:%WINSDK_LIB_PATH%\um\x64" ^
     "-libpath:%CLANG_RESOURCE_DIR%\lib\windows" ^
     "%CLANG_RESOURCE_DIR%\lib\windows\clang_rt.builtins-x86_64.lib" ^
+    "-libpath:%DETOURS_DIR%\lib.X64" ^
     amdhip64.lib ^
-    dxgi.lib ^
+	detours.lib ^
+	dxgi.lib ^
     dxguid.lib ^
     libcmt.lib ^
     %OBJ_FILES%
 
 set BUILD_RESULT=%ERRORLEVEL%
 if %BUILD_RESULT% neq 0 goto :buildfailed
+
+echo Removing Detours folder (no longer needed after linking)...
+rmdir /S /Q "%DETOURS_DIR%"
 
 REM ---- Write comfy_aimdo\model_vbar.py ----
 echo Patching comfy_aimdo\model_vbar.py...
@@ -244,7 +290,8 @@ if %BUILD_RESULT% EQU 0 (
         echo Output: comfy_aimdo\aimdo.dll
         for %%F in (comfy_aimdo\aimdo.dll) do echo Size:   %%~zF bytes
         echo.
-        echo Now run: pip install .
+        echo Now run:
+		echo   cd .. ^&^& pip install .
         echo.
         echo After that, one manual step:
         for /f "tokens=*" %%i in ('python -c "import site; print(site.getsitepackages()[0])"') do set "VENV_SITE=%%i"
