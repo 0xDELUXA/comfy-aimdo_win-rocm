@@ -1,0 +1,6 @@
+#!/bin/bash
+
+
+SRCS="src/*.c"
+hipcc $(hipconfig -C) -shared -o comfy_aimdo/aimdo.so -fPIC -Werror \
+    -x c ${SRCS}
