@@ -1,6 +1,6 @@
 #!/bin/bash
 
 
-SRCS="src/*.c"
-gcc $(hipconfig -C) -L $(hipconfig -p)/lib -shared -o comfy_aimdo/aimdo.so -fPIC -Werror \
+SRCS="src/*.c src/hip/*.c"
+gcc -g $(hipconfig -C) -L $(hipconfig -p)/lib -shared -O0 -o comfy_aimdo/aimdo.so -fPIC -Werror \
 	${SRCS} -l amdhip64
