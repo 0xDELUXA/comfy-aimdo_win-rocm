@@ -2,5 +2,5 @@
 
 
 SRCS="src/*.c"
-hipcc $(hipconfig -C) -shared -o comfy_aimdo/aimdo.so -fPIC -Werror \
-    -x c ${SRCS}
+gcc $(hipconfig -C) -shared -o comfy_aimdo/aimdo.so -fPIC -Werror \
+	${SRCS}
