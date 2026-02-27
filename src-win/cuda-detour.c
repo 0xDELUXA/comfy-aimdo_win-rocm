@@ -34,8 +34,8 @@ static int aimdo_cuMemFreeAsync(CUdeviceptr dptr, CUstream hStream) {
 static const HookEntry hooks[] = {
     { (void**)&true_cuMemAlloc_v2,    aimdo_cuMemAlloc_v2,    "hipMalloc"    },
     { (void**)&true_cuMemFree_v2,     aimdo_cuMemFree_v2,     "hipFree"     },
-    { (void**)&true_cuMemAllocAsync,  aimdo_cuMemAllocAsync,  "hipMemAllocAsync"  },
-    { (void**)&true_cuMemFreeAsync,   aimdo_cuMemFreeAsync,   "hipMemFreeAsync"   },
+    { (void**)&true_cuMemAllocAsync,  aimdo_cuMemAllocAsync,  "hipMallocAsync"  },
+    { (void**)&true_cuMemFreeAsync,   aimdo_cuMemFreeAsync,   "hipFreeAsync"    },
 };
 #else
 static const HookEntry hooks[] = {
@@ -76,7 +76,7 @@ static const char* driver_dlls[] = {
 #else
     "nvcuda64.dll", "nvcuda.dll", NULL
 #endif
-}
+};
 
 bool aimdo_setup_hooks() {
     HMODULE h_real_cuda = NULL;
