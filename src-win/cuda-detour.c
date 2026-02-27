@@ -71,7 +71,7 @@ static inline bool install_hook_entrys(HMODULE h, HookEntry *hooks, size_t num_h
     return true;
 }
 static const char* driver_dlls[] = {
-if defined(__HIP_PLATFORM_AMD__)
+#if defined(__HIP_PLATFORM_AMD__)
     "amdhip64.dll", "amdhip64_7.dll", NULL
 #else
     "nvcuda64.dll", "nvcuda.dll", NULL
