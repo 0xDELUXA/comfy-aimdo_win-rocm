@@ -10,6 +10,25 @@ static struct {
     IDXGIAdapter3 *adapter;
 } G_WDDM;
 
+#if defined(__HIP_PLATFORM_AMD__)
+static CUresult cuDeviceGetLuid(char* cuda_luid, unsigned int* deviceNodeMask, CUdevice dev) {
+    hipDeviceProp_t props;
+    if (hipGetDeviceProperties(&props, dev) != hipSuccess) {
+        goto fail;
+    }
+    memcpy(cuda_luid, props.luid, sizeof(LUID));
+    *node_mask = props.luidDeviceNodeMask;
+    /* Verify the LUID is non-zero — AMD drivers may not populate it */
+    {
+        LUID zero = {0};
+        if (memcmp(cuda_luid, &zero, sizeof(LUID)) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+#endif
+
 bool aimdo_wddm_init(CUdevice dev)
 {
     int fail_code = 1;
