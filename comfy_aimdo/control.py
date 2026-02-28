@@ -27,6 +27,19 @@ def detect_vendor():
                 if impl:
                     logging.info("Autodetected AIMDO implementation %s", impl)
                     return impl
+        return None
+    if system == "Windows":
+        import winreg
+        try:
+            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Enum\PCI")
+            for i in range(winreg.QueryInfoKey(key)[0]):
+                subkey_name = winreg.EnumKey(key, i)
+                for vendor, impl in [("VEN_1002", AimdoImpl.ROCM), ("VEN_10DE", AimdoImpl.CUDA)]:
+                    if vendor in subkey_name:
+                        logging.info("Autodetected AIMDO implementation %s", impl)
+                        return impl
+        except Exception:
+            pass
     return None
 
 
