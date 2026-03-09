@@ -35,8 +35,8 @@ static inline void st_lock(void) { pthread_mutex_lock(&size_table_lock); }
 static inline void st_unlock(void) { pthread_mutex_unlock(&size_table_lock); }
 #endif
 
-int aimdo_cuda_malloc_async(CUdeviceptr *devPtr, size_t size, CUstream hStream,
-                            int (*true_cuMemAllocAsync)(CUdeviceptr*, size_t, CUstream)) {
+cudaError_t aimdo_cuda_malloc_async(CUdeviceptr *devPtr, size_t size, CUstream hStream,
+                                    cudaError_t (*true_cuMemAllocAsync)(CUdeviceptr*, size_t, CUstream)) {
     CUdeviceptr dptr;
     CUresult status = 0;
 
@@ -83,8 +83,8 @@ success:
     return 0;
 }
 
-int aimdo_cuda_free_async(CUdeviceptr devPtr, CUstream hStream,
-                          int (*true_cuMemFreeAsync)(CUdeviceptr, CUstream)) {
+cudaError_t aimdo_cuda_free_async(CUdeviceptr devPtr, CUstream hStream,
+                                  cudaError_t (*true_cuMemFreeAsync)(CUdeviceptr, CUstream)) {
     SizeEntry *entry;
     SizeEntry **prev;
     unsigned int h;
