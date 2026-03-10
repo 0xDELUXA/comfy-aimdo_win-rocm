@@ -12,6 +12,9 @@ void aimdo_teardown_hooks();
 // fortunately they have the same interface
 #define cuCtxGetDevice hipGetDevice
 #define cuCtxSynchronize hipDeviceSynchronize
+#define cuCtxSetCurrent hipCtxSetCurrent
+#define CUcontext hipCtx_t
+#define cuDevicePrimaryCtxRetain hipDevicePrimaryCtxRetain
 #define cudaError_t hipError_t
 #define cudaFreeAsync hipFreeAsync
 #define cudaFree hipFree

@@ -53,3 +53,12 @@ Remove-Item $rspFile -ErrorAction SilentlyContinue
 if ($exitCode -ne 0) { throw "Build failed (exit code $exitCode)" }
 Remove-Item -Recurse -Force $detoursDir
 Write-Host "Build successful: comfy_aimdo\aimdo_rocm.dll"
+
+# Copy amdhip64_7.dll to package
+$amdhipDll = "$rocmBase\bin\amdhip64_7.dll"
+if (Test-Path $amdhipDll) {
+    Copy-Item $amdhipDll -Destination "$root\comfy_aimdo\" -Force
+    "Copied amdhip64_7.dll to comfy_aimdo\"
+} else {
+    Write-Warning "amdhip64_7.dll not found at: $amdhipDll"
+}
