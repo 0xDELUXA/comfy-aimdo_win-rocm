@@ -3,6 +3,10 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+if (-not $env:VIRTUAL_ENV) {
+    throw "VIRTUAL_ENV is not set. Please activate your venv before running this script."
+}
+
 $root = $PSScriptRoot
 function F([string]$p) { $p.Replace('\','/') }  # forward-slash paths for clang rsp
 
@@ -53,3 +57,17 @@ Remove-Item $rspFile -ErrorAction SilentlyContinue
 if ($exitCode -ne 0) { throw "Build failed (exit code $exitCode)" }
 Remove-Item -Recurse -Force $detoursDir
 Write-Host "Build successful: comfy_aimdo\aimdo_rocm.dll"
+
+# ── Install package into venv ──────────────────────────────────────────────────
+pip install .
+if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+
+# ── Copy amdhip64_7.dll to venv\Lib\site-packages\comfy_aimdo\ ────────────────
+$amdhipSrc = "$rocmBase\bin\amdhip64_7.dll"
+$amdhipDst = "$env:VIRTUAL_ENV\Lib\site-packages\comfy_aimdo\"
+if (Test-Path $amdhipSrc) {
+    Copy-Item $amdhipSrc -Destination $amdhipDst -Force
+    Write-Host "Copied amdhip64_7.dll to $amdhipDst"
+} else {
+    Write-Warning "amdhip64_7.dll not found at: $amdhipSrc"
+}
